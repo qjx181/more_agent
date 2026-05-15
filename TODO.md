@@ -1,7 +1,7 @@
 # TODO — 初始种子任务
 
 ## Priority: HIGH
-- [ ] 实现 `swarm_utils.py` 基础工具函数集（包含文件读写、日志辅助函数）
+- [x] 实现 `swarm_utils.py` 基础工具函数集（包含文件读写、日志辅助函数）
 - [ ] 更新 README.md 补充架构说明
 
 ## Priority: MEDIUM
