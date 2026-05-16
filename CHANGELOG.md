@@ -55,3 +55,11 @@
 - 审查: B队4 Agent 审查通过所有 A 队产出 (Agent 5-8)
 - 决策: 全部批准合并，修复 README 轮次编号 + .gitignore 心跳目录
 - 摘要: A 队 4 Agent 首次并行开发 —— 更新 README、创建 2 个新 SKILL（Git 安全提交 / 跨技能学习）、实现心跳健康检测模块。B 队审查发现 3 个 revision_needed（README 编号同步、SKILL 元数据补全、安全加固）、1 个 approve（swarm_health.py 9/10）。协调者修复关键问题后合并。push 失败（国内网络），本地 commit 已完成。
+
+## Round 12 — 20260516_111111 (Cronjob 修复 + 首轮 A→B→Git 闭环验证)
+- 完成: 重建 Hermes cronjob (swarm-evolve-round) 带 skills 加载, 手动触发 A队→B队→Git 闭环测试
+- 修复: self_evolve_round.py 从空转审计改为状态报告脚本, 删除已停用的系统 cron
+- 更新: README.md 再由 A队补充架构说明 (404→636行), B队审查评分 8.5/10, PASS
+- 新增: tmux daemon (hermes-swarm) 已启动常驻
+- 同步: TODO.md 更新反映真实进度（git-safe-commit/cross-skill-learning/swarm_health 标记为完成）
+- 摘要: 修复项目三核心问题 —— Hermes cronjob 从 5月15日22:02 后停止工作, Round 6-10 空转。删除旧 cronjob 重建为带 skills (orchestrate-swarm/dev-cell/qa-cell) 和完整 prompt 的版本。手动验证一轮 A→B→Git 闭环通过。tmux daemon 已启动让 cronjob 可以自动触发。

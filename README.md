@@ -4,7 +4,7 @@
 
 > **项目代号：** swarm-self-evolve  
 > **创建日期：** 2026-05-15  
-> **当前轮次：** Round 11（持续运行中）  
+> **当前轮次：** Round 10（持续运行中）  
 > **运行平台：** WSL Ubuntu + Hermes Agent CLI
 
 ---
@@ -13,9 +13,11 @@
 
 - [系统架构](#系统架构)
 - [Agent 角色分工表](#agent-角色分工表)
+- [自我进化循环流程](#自我进化循环流程)
 - [开发阶段进度](#开发阶段进度)
 - [技术栈](#技术栈)
 - [项目目录结构](#项目目录结构)
+- [Daemon 管理](#daemon-管理)
 - [演进路线图](#演进路线图)
 - [快速开始](#快速开始)
 - [核心机制](#核心机制)
@@ -44,6 +46,37 @@
 │  └──────┴──────┴───┴─┘         │  └──────┴──────┴───┴───┘ │
 └─────────────────────┘         └─────────────────────────┘
 ```
+
+### 三层职责详解
+
+**协调者层（Agent 0）** — 大脑与调度中枢
+- 通过 `orchestrate-swarm` 技能管理整个进化循环
+- 读取 `TODO.md` 确定当前待办任务
+- 并行派发 delegate_task 给 A 队 4 个子 Agent
+- 收集 A 队 report.json，汇总产出文件
+- 并行派发 delegate_task 给 B 队 4 个子 Agent
+- 审核 B 队的审查报告（review.json），做合并/驳回/修复决策
+- 执行 Git commit + push
+- 更新 `TODO.md` 和 `CHANGELOG.md`
+- 写入 memory 记录经验教训
+- 子 Agent 全部失败时跳过本轮并记录原因
+
+**A 队 — 开发队（Agent 1-4）** — 编写与创造
+- 使用 `dev-cell` 技能，读取 `TODO.md` 选取优先级最高的任务
+- 并行工作，每人专注于自己的角色领域（核心/工具/技能/记忆）
+- 编写代码、创建 SKILL、修改已有文件
+- 每写完一个文件必须通过 `python -c "import ast; ast.parse(...)"` 语法验证
+- 输出工作报告到 `tmp_agent/agent-{id}/report.json`
+
+**B 队 — 质量队（Agent 5-8）** — 审查与保障
+- 使用 `qa-cell` 技能，读取 A 队产出的 report.json 和输出文件
+- 并行工作，每人从不同维度审查：
+  - Agent 5 (qa-review): 代码质量、PEP 8、逻辑错误、边界情况
+  - Agent 6 (qa-test): 写单元测试并运行，验证功能正确
+  - Agent 7 (qa-docs): 注释完整性、README 一致性、遗留 TODO/FIXME
+  - Agent 8 (qa-perf): 安全漏洞、性能瓶颈、资源泄漏
+- 输出审查报告到 `tmp_agent/agent-{id}/review.json`
+- 发现 critical 错误必须标记为 error，否则驳回
 
 ### 作业流程（每轮 ~30 分钟）
 
@@ -95,6 +128,16 @@ tmp_agent/
     └── round-N-report.md
 ```
 
+### 子 Agent 隔离机制
+
+所有子 Agent 运行在完全隔离的上下文中：
+
+- ❌ 不能访问 memory（防止污染）
+- ❌ 不能调用 delegate_task（防止无限嵌套）
+- ❌ 不能问用户问题（完全自动）
+- ❌ 不能操作 Git（只有协调者能提交）
+- ✅ 仅访问 `tmp_agent/agent-{id}/` 自己的输出目录
+
 ---
 
 ## Agent 角色分工表
@@ -120,15 +163,114 @@ tmp_agent/
 | minor | 风格问题或可改进 | 记录，不阻塞合并 |
 | suggestion | 未来优化方向 | 记录到 TODO |
 
-### 子 Agent 隔离机制
+---
 
-所有子 Agent 运行在完全隔离的上下文中：
+## 自我进化循环流程
 
-- ❌ 不能访问 memory（防止污染）
-- ❌ 不能调用 delegate_task（防止无限嵌套）
-- ❌ 不能问用户问题（完全自动）
-- ❌ 不能操作 Git（只有协调者能提交）
-- ✅ 仅访问 `tmp_agent/agent-{id}/` 自己的输出目录
+系统通过一个完整的闭环实现自我进化，每轮循环从触发到提交分为五个阶段。
+
+### 阶段 0：触发
+
+整个循环由定时器启动，有两种触发方式：
+
+**方式一：Hermes Cronjob（推荐）**
+- Hermes Agent 内建的 cronjob 调度器（`swarm-evolve-round`）
+- 每 30 分钟自动加载 `orchestrate-swarm` 技能
+- 依赖 Hermes Gateway 常驻运行（通过 tmux 守护）
+
+```
+系统时钟 --> Hermes cronjob 调度器 --> 加载 orchestrate-swarm 技能
+                                            |
+                                            ▼
+                                      delegate_task batch
+```
+
+**方式二：系统 Cron（备用）**
+- Linux crontab 每 30 分钟调用 `cron_trigger.py`
+- cron_trigger.py 调用 `self_evolve_round.py`
+- 局限性：只能执行 Git 提交 + 状态检查，不能派发子 Agent
+
+```
+系统 crontab --> cron_trigger.py --> self_evolve_round.py (状态审计)
+```
+
+**方式三：手动触发**
+- 直接运行 `python self_evolve_round.py`
+- 或 `python self_evolve_round.py --report` 生成详细状态报告
+- 或 `python self_evolve_round.py --hermes-run` 通过 Hermes CLI 触发
+
+### 阶段 1：A 队开发（Phase 1 — Develop）
+
+协调者（Agent 0）通过 `delegate_task` 并行派发 4 个子任务给 A 队：
+
+```
+协调者 Agent 0
+  │
+  ├── delegate_task → Agent 1 (dev-core): 从 TODO 选 HIGH 任务，写核心代码
+  ├── delegate_task → Agent 2 (dev-tools): 从 TODO 选工具/接口任务
+  ├── delegate_task → Agent 3 (dev-skills): 创建/更新 SKILL、文档
+  └── delegate_task → Agent 4 (dev-memory): 管理配置、统计数据
+```
+
+每个子 Agent 获得裁剪后的上下文（只传与其角色相关的 TODO 子集），在隔离环境中：
+1. 读取 TODO.md 选取优先级最高的任务
+2. 读取相关项目文件了解上下文
+3. 编写代码或更新文件
+4. 执行 `python -c "import ast; ast.parse(open('file.py').read())"` 验证语法
+5. 输出 `report.json` 到 `tmp_agent/agent-{id}/`
+
+### 阶段 2：B 队审查（Phase 2 — Review）
+
+协调者收集 A 队的产出文件列表，再次通过 `delegate_task` 并行派发 4 个审查任务：
+
+```
+协调者 Agent 0
+  │
+  ├── delegate_task → Agent 5 (qa-review): 审查代码逻辑、风格、异常处理
+  ├── delegate_task → Agent 6 (qa-test): 写单元测试并运行
+  ├── delegate_task → Agent 7 (qa-docs): 审查注释、文档完整性
+  └── delegate_task → Agent 8 (qa-perf): 审查安全漏洞、性能瓶颈
+```
+
+每个 B 队 Agent 审查产出文件，输出 `review.json`，包含 issues_found 列表（带 id、severity、category、line、description、suggestion）和总体评分。
+
+### 阶段 3：协调者决策（Phase 3 — Decide）
+
+| 审查结果 | 决策 |
+|----------|------|
+| 无 critical 问题 | 合并本轮所有改动 |
+| 有 critical 且可修 | 派单给对应 A 队 Agent 修复 |
+| 有 critical 且不可修 | 驳回本轮 |
+| 连续 3 轮被驳回 | 强制合并（防死锁机制） |
+
+### 阶段 4：Git 提交（Phase 4 — Commit）
+
+```
+git add -A
+git diff --cached --quiet || git commit -m "swarm-evolve: round N — 摘要"
+git push 2>&1 || echo "push_failed（跳过）"
+```
+
+- 只有协调者可以操作 Git
+- Push 失败跳过（国内网络容错），本地 commit 已保证版本安全
+- 提交后更新 TODO.md（完成任务标记 `[x]`）和 CHANGELOG.md（记录本轮摘要）
+- 协调者将本轮经验写入 memory
+
+### 完整时序图
+
+```
+        系统时钟    协调者(Agent0)    A队(1-4)    B队(5-8)    Git仓库    TODO/CHANGELOG
+           │             │             │           │           │            │
+           │──cronjob───>│             │           │           │            │
+           │             │──batch─────>│ 并行开发   │           │            │
+           │             │<──report────│           │           │            │
+           │             │──batch─────────────────>│ 并行审查   │            │
+           │             │<────────review─────────│           │            │
+           │             │──决策───────────────────────────────────────────>│
+           │             │────────────────────────────────> Git commit     │
+           │             │────────────────────────────────────────────> 更新
+           │<────done────│             │           │           │            │
+```
 
 ---
 
@@ -225,24 +367,35 @@ F:\项目三：多Agent\               # 项目根目录
 ├── CHANGELOG.md                 # 进化日志（Agent 驱动更新）
 ├── 开发工单.md                   # 完整开发规划文档
 ├── 面试问答集.md                 # 面试准备 Q&A
+├── HERMES_DAEMON.txt            # 一键启动 Hermes 守护进程说明
 │
 ├── .gitignore                   # Git 忽略规则
 ├── .hermes/                     # Hermes Agent 配置（已 gitignore）
 │   └── skills/
-│       ├── orchestrate-swarm/   # 协调者调度技能
+│       ├── orchestrate-swarm/   # 协调者调度技能（~/.hermes/skills/下）
 │       ├── dev-cell/            # A 队开发技能
 │       └── qa-cell/             # B 队质量技能
 │
 ├── self_evolve_round.py         # 协调者脚本 — 每轮循环执行入口
+│                                # 三种模式：默认(状态报告)、--report、--hermes-run
 ├── cron_trigger.py              # 系统 cron 触发器 — 调用 self_evolve_round.py
-├── start_hermes_daemon.sh       # tmux 守护进程启动脚本
+├── start_hermes_daemon.sh       # tmux 守护进程启动脚本（幂等防重复）
 ├── swarm_utils.py               # [H] 基础工具函数集（文件读写、日志辅助）
+├── swarm_health.py              # [L] 心跳检测机制（HeartbeatPinger / HealthMonitor）
 ├── test_d4.py                   # [M] 单 Agent 试跑测试文件
 │
 ├── tmp_agent/                   # 每轮工作产物（已 gitignore）
-│   ├── agent-1/
-│   ├── ...
-│   └── orchestrate/
+│   ├── agent-1/         # A队 dev-core   — report.json + output/
+│   ├── agent-2/         # A队 dev-tools  — report.json + output/
+│   ├── agent-3/         # A队 dev-skills — report.json + output/
+│   ├── agent-4/         # A队 dev-memory — report.json + output/
+│   ├── agent-5/         # B队 qa-review  — review.json + output/
+│   ├── agent-6/         # B队 qa-test    — review.json + output/
+│   ├── agent-7/         # B队 qa-docs    — review.json + output/
+│   ├── agent-8/         # B队 qa-perf    — review.json + output/
+│   └── orchestrate/     # 协调者总结     — round-N-report.md
+│
+├── heartbeats/                  # 心跳检测文件目录（swarm_health.py 生成）
 │
 ├── logs/                        # cron 运行日志
 │   ├── cron_stdout.log
@@ -252,7 +405,69 @@ F:\项目三：多Agent\               # 项目根目录
 └── requirements.txt             # 依赖（待创建）
 ```
 
-> **图例：** `[H]` = HIGH 优先级已完成，`[M]` = MEDIUM 优先级已完成
+> **图例：** `[H]` = HIGH 优先级已完成，`[M]` = MEDIUM 优先级已完成，`[L]` = LOW 优先级已完成
+
+---
+
+## Daemon 管理
+
+### 为什么需要 Daemon
+
+Hermes Agent 的 cronjob 调度器是**会话级**的——关闭 Hermes 会话后 cronjob 不会触发。`cronjob list` 能看到 job，但 `last_run_at` 永远为 null。因此需要 tmux + Hermes Gateway 常驻运行。
+
+### 启动守护进程
+
+```bash
+cd /mnt/f/项目三：多Agent/
+bash start_hermes_daemon.sh
+```
+
+`start_hermes_daemon.sh` 脚本做了幂等处理：
+- 如果 tmux 会话已存在，不重复启动
+- 在 tmux 会话 `hermes-swarm` 中运行 `hermes gateway run`
+- Hermes Gateway 常驻后，cronjob 调度器正常工作，每 30 分钟自动触发一轮进化
+
+### 启动后检查
+
+```bash
+# 查看守护进程状态
+tmux has-session -t hermes-swarm && echo "运行中" || echo "已停止"
+
+# 查看运行日志
+tmux attach -t hermes-swarm
+# 注意：attach 会进入 tmux 界面，按 Ctrl+B 然后按 D 退出（不中断进程）
+```
+
+### 停止守护进程
+
+```bash
+tmux kill-session -t hermes-swarm
+```
+
+### 重启守护进程
+
+```bash
+tmux kill-session -t hermes-swarm 2>/dev/null
+bash start_hermes_daemon.sh
+```
+
+### 备选方案：系统 Cron（无完整调度能力）
+
+如果 tmux 不可行，可以用 Linux 系统 cron 执行状态检查：
+
+```bash
+echo '*/30 * * * * /usr/bin/python3 /mnt/f/项目三：多Agent/cron_trigger.py >> /mnt/f/项目三：多Agent/logs/cron_stdout.log 2>&1' | crontab -
+```
+
+但这个方案**只能执行 `self_evolve_round.py`（git commit + 状态检查），不能派发子 Agent**。完整 A→B→Git 闭环需要 Hermes 常驻。
+
+### WSL 重启后的操作
+
+每次重启 WSL 后，tmux 会话消失，需要重新运行：
+
+```bash
+bash /mnt/f/项目三：多Agent/start_hermes_daemon.sh
+```
 
 ---
 
@@ -370,13 +585,27 @@ ollama pull qwen2.5:7b-instruct-q4_K_M
 
 每轮循环 = 开发 → 审查 → 决策 → 提交 → 记录，形成闭环。
 
+```
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│ 触发     │ →  │ A 队开发  │ →  │ B 队审查  │ →  │ 协调者    │ →  │ Git 提交  │
+│ cronjob  │    │ 写代码    │    │ 审查质量  │    │ 决策     │    │ + 更新    │
+└──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
+```
+
 ### 3. 技能系统
 
 Agent 发现可复用的模式 → 自动创建 SKILL → 后续 Agent 可加载使用 → 系统能力持续积累。
 
+当前系统包含三个核心技能：
+- **orchestrate-swarm**：协调者调度技能，管理完整的 A→B→Git 循环
+- **dev-cell**：A 队开发技能，定义开发规范、验证要求、报告格式
+- **qa-cell**：B 队质量技能，定义审查标准、严重级别、报告格式
+
 ### 4. 记忆系统
 
 重复出现的失败模式 → 写入 memory → 后续 Agent 避免再犯 → 系统从错误中学习。
+
+注意：只有协调者能操作 memory，子 Agent 不能直接访问。
 
 ### 5. 零人工干预
 
@@ -395,7 +624,9 @@ Agent 发现可复用的模式 → 自动创建 SKILL → 后续 Agent 可加载
 | [面试问答集.md](./面试问答集.md) | 面试准备材料 |
 | [self_evolve_round.py](./self_evolve_round.py) | 协调者脚本源码 |
 | [swarm_utils.py](./swarm_utils.py) | 基础工具函数库 |
+| [swarm_health.py](./swarm_health.py) | 心跳检测模块 |
 | [cron_trigger.py](./cron_trigger.py) | cron 触发器脚本 |
+| [start_hermes_daemon.sh](./start_hermes_daemon.sh) | 守护进程启动脚本 |
 
 ---
 
