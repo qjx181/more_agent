@@ -6,7 +6,9 @@
       "task": "为 services/retrieval_cache.py 编写单元测试",
       "approach": "协调者直接 write_file（不委托子Agent）",
       "result": "success",
-      "files_created": ["tests/test_retrieval_cache.py"],
+      "files_created": [
+        "tests/test_retrieval_cache.py"
+      ],
       "lines_added": 280,
       "git_commit": "1860666",
       "reflection": {
@@ -15,6 +17,19 @@
         "improvement": "CHANGELOG.md 的历史数据混乱问题（行号重复）仍未解决。可以下次使用 git checkout HEAD -- CHANGELOG.md 恢复干净版本并重新组织。",
         "skill_update_needed": "orchestrate-swarm SKILL.md 中关于委托决策矩阵的部分已验证正确——创建测试文件确实应该由协调者直接 write_file。无需更新。"
       }
+    },
+    {
+      "round": "demo",
+      "timestamp": "2026-05-18T~20:00",
+      "task_id": "scan-and-fix-project-one",
+      "success": true,
+      "what_worked": "系统扫描+按优先级修复有效。routes/chat测试覆盖了3个关键场景",
+      "what_wasted": "StreamingResponse 内部异常无法用 HTTPException 处理，花了2次迭代才理解",
+      "skill_update_needed": "learned: StreamingResponse generator 内部不能 raise HTTPException",
+      "actions_taken": [
+        "routes/chat.py 限流429/503 bug修复",
+        "test_routes_chat.py 核心测试"
+      ]
     }
   ],
   "accumulated_insights": {
