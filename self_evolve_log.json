@@ -1,0 +1,8 @@
+{
+  "rounds": [],
+  "accumulated_insights": {
+    "coordinator_write_file_vs_delegate": "2026-05-18: 对于接口不变的代码改造 sync to async，协调者 write_file 比 delegate 给子 Agent 更可靠。子 Agent 经常改函数签名。",
+    "diff_content_check": "2026-05-18: 新增 Step 3 diff_content_check，防止子Agent产出语法正确但功能没实现的代码。",
+    "model_choice": "2026-05-18: 协调者必须用 DeepSeek 工具调用强，8B 本地模型只做 delegate_sub_agent 干简单活、不做决策。"
+  }
+}
