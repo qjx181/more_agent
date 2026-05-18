@@ -1,0 +1,14 @@
+{
+  "current_round": 0,
+  "step": "project_three_sync",
+  "project_one_step": "idle",
+  "project_three_step": "idle",
+  "started_at": null,
+  "completed_at": null,
+  "last_error": null,
+  "conflict_files": [],
+  "retry_counts": {},
+  "paused_due_to_conflict": false,
+  "paused_due_to_error": false,
+  "manual_intervention_needed": false
+}
