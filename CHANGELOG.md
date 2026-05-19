@@ -93,3 +93,13 @@
 - 异常安全：文件不存在/JSON解析失败时跳过
 - 委托验证：qwen2.5:7b 子 Agent 零文件产出（读文件但不执行修改），协调者覆盖
 - +36 行，1 个函数，commit 23f9c22
+
+## Round 44 — 2026-05-19 cost_tracker_persistence + json_logs_startup_flag
+- cost_tracker_db.py（新文件，238行）：SQLite 持久化成本跟踪
+  - record_cost() / get_today_spent() / get_trend() / get_task_costs()
+  - 自动建表，异常降级到内存模式，单例模式快捷函数
+- self_evolve_round.py 的 check_cost_over_budget() 优先从 SQLite 读取，降级到 state.json
+- self_evolve_round.py 新增 --json-logs CLI 参数，relog() 支持 JSON 格式输出
+- self_evolve_round.py 新增 _format_log() 辅助函数
+- 子 Agent（qwen2.5:7b × 2）：均零产出，协调者直接 write_file 接管
+- +285/-8 行，commit 429a1d0
