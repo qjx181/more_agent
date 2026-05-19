@@ -61,3 +61,20 @@
 - 删除 services/session.py（已被 session_service.py 完全覆盖）
 - 修复 async def build_context 中 sync Redis I/O 未用 to_thread 包装的 event loop 阻塞 bug
 - commit 6cd7c82，-57 行
+
+## Round 40 — 2026-05-19 子 Agent 角色体系搭建
+- agent_roles.py 定义 3 角色（coder/reviewer/tester）+ 5 预留槽位
+- templates/coder_template.md, tester_template.md, reviewer_template.md 标准化 prompt 模板
+- cronjob prompt 新增强制委托规则
+- +752/-42 行
+
+## Round 41 — 2026-05-19 分层委托流程 + 诊断 + 成本激励（项目三自身优化）
+- delegate_optimizer.py（562行）一站式实现：
+  - Layer 1/2/3 委托流程（should_delegate 决策 + build_delegation_prompt 构建器 + check_signature 验收）
+  - 5 条硬约束自动注入每次委托 prompt
+  - 诊断工具（diagnose_failures 扫描 8 轮，100% 成功率，2 种失败模式）
+  - 成本激励机制（DELEGATION_INCENTIVE 配置：50 行阈值）
+- self_evolve_round.py 集成 run_delegation_diagnosis() 每轮自动诊断
+- config.yaml 追加 delegation_incentive 配置节
+- 强制委托验证：qwen2.5:7b 子 Agent 读文件但不执行修改（失败模式归档）
+- +650 行，commit 1aedd8d
