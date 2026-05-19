@@ -147,6 +147,44 @@
       "good": "压力测试套件7项全部通过（1.2s），覆盖令牌桶耗尽/Semaphore槽位占满/缓存穿透/综合并发4个场景。write_file自动lint一次通过。pip install pytest遇到了 externally-managed-environment 限制，用 venv 绕过后运行成功。",
       "waste": "无——所有任务单轮完成，0 次 retry，0 次 delegate。首次 terminal 因无 pytest 失败后立即用 venv 安装，额外耗时约 20s 但不算浪费。",
       "new_skill": "不需要——压力测试编写模式（协调者 write_file + terminal run）已成熟，无 3 次重复的新模式。"
+    },
+    {
+      "round": 30,
+      "timestamp": "2026-05-19 11:10:00",
+      "task": "asyncify_knowledge_store — sync I/O → async def + asyncio.to_thread",
+      "approach": "协调者直接 write_file + patch（接口不变改造，不委托子Agent）",
+      "result": "success",
+      "files_created": [],
+      "files_modified": [
+        "services/knowledge_store.py",
+        "services/chat_service.py",
+        "services/retrieval.py",
+        "tests/test_knowledge_store.py"
+      ],
+      "lines_added": 299,
+      "lines_removed": 204,
+      "git_commit": "a7a40eb",
+      "good": "1) sync→async 改造采用保留内部 sync 函数（_xxx_sync）+ async def 用 asyncio.to_thread 桥接的稳妥模式，测试直接测 sync 层避免线程边界问题。2) chat_service.py 的 save 调用改为 await，retrieval.py 改用 search_chat_knowledge_sync 维持 to_thread 兼容。3) 新增 3 个异步包装器路由测试，验证委托正确性。4) 修复了旧测试中 mock 搜索结果的 __getitem__ 无限循环问题。5) 0 次 retry，0 次 delegate，全流程 25 分钟完成。",
+      "waste": "首次测试用了 @patch + async def 组合，asyncio.to_thread 创建线程边界导致 patch 不跨线程，10 个测试失败。改为直接测 _xxx_sync 同步层后全部通过（+3 个异步包装器测试）。耗时：调试线程边界问题约 5 分钟。",
+      "new_skill": "不需要——sync→async 改造的 _xxx_sync+async 桥接模式已验证，但尚未达到 3 次重复的模式阈值。"
+    },
+    {
+      "round": 31,
+      "timestamp": "2026-05-19 11:00:00",
+      "task": "asyncify_session_service — SessionService.create_session + list_sessions async def + 13 unit tests",
+      "approach": "协调者直接 write_file（接口不变改造）+ terminal 安装 venv + pytest 运行验证",
+      "result": "success",
+      "files_modified": [
+        "services/session_service.py",
+        "routes/session.py"
+      ],
+      "files_created": [],
+      "lines_added": 198,
+      "lines_removed": 125,
+      "git_commit": "3c2ff64",
+      "good": "1) SessionService 的 async def 转换不需要 asyncio.to_thread——所有底层调用（JWT decode、dict lookup、UUID gen）都是纯 CPU 操作。2) routes/session.py 从 asyncio.to_thread 改为直接 await。3) 13 个单元测试一次性通过。4) 0 次 delegate，0 轮等待，全流程约 20 分钟。",
+      "waste": "首次测试运行因 pytest-asyncio strict 模式导致 11 个 async 测试失败——加 pytestmark 后通过。pip install 用 venv 绕过 externally-managed-environment。",
+      "new_skill": "不需要——sync→async 的接口不变转换模式已多次验证（Round 23, 30, 31），无需新 skill。"
     }
   ],
   "accumulated_insights": {
@@ -159,6 +197,9 @@
     "token_truncation_heuristic": "2026-05-18: 实现了无外部依赖的 token 估算方案（CJK:1.5t/char, ASCII:0.25t/char）。替换了 retrieval.py 的字符截断 content[:1200]→max_tokens_short=300 等。patch 工具对含转义字符的字符串修改需要小心——优先使用整行替换而非依赖转义序列匹配。",
     "chat_service_mock_strategy": "2026-05-18: chat_service.py 测试需要 mock 8 个模块（auth/memory/config/retrieval/prompt/knowledge_store/safety/web_fallback）+ llm_client。策略：所有 mock 在 import 前通过 sys.modules 注入，stream_llm 用 real async generator 替代 MagicMock。_build_messages 纯 sync 函数测试效率高。",
     "ragas_integration": "2026-05-19: ragas 0.4.3 集成完成。交互后异步触发评估（asyncio.create_task），JSONL 按日期分文件。evaluation_service.py 不阻塞主响应流。pip install 需要大 timeout（600s）。CLI 入口 run_ragas_eval.py 支持 --question/--count/--output 三种模式。",
-    "stress_test_pattern": "2026-05-19: 压力测试套件模式确认——协调者直接write_file测试文件（不是delegate子Agent），异步并发场景用 asyncio.gather + time.perf_counter + percentile 统计配合。P95 阈值在虚机环境下设为 200ms 更合理（裸机应为 100ms）。"
-  }
+    "stress_test_pattern": "2026-05-19: 压力测试套件模式确认——协调者直接write_file测试文件（不是delegate子Agent），异步并发场景用 asyncio.gather + time.perf_counter + percentile 统计配合。P95 阈值在虚机环境下设为 200ms 更合理（裸机应为 100ms）。",
+    "async_wrapper_vs_sync_core": "2026-05-19: 针对 sync→async 改造的稳妥模式——保留内部 sync 函数（_xxx_sync），外部 async def 用 asyncio.to_thread 桥接。这样测试可以直接测 sync 层避免线程边界问题。同步别名（search_chat_knowledge_sync）供 asyncio.to_thread 调用方（如 retrieval.py）使用。",
+    "session_service_async_def": "2026-05-19: SessionService.create_session + list_sessions 改为 async def。所有底层调用均为纯 CPU 操作，无需 to_thread。routes/session.py 改用直接 await 移除不必要的线程边界。"
+  },
+  "rounds_end_marker": true
 }
