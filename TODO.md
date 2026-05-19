@@ -165,7 +165,7 @@
 
 ### Priority: MEDIUM
 
-- [ ] 任务ID: cleanup_deprecated_chat_pipeline
+- [x] 任务ID: cleanup_deprecated_chat_pipeline
   描述: 删除已废弃的 services/chat_pipeline.py（被 chat_service.py 完全覆盖），更新所有 import 引用
   验收标准:
     - chat_pipeline.py 文件被删除（git rm）
@@ -182,7 +182,7 @@
   依赖: 无
   预估 token 量: 1500
 
-- [ ] 任务ID: sandbox_pool_retry_and_alert
+- [x] 任务ID: sandbox_pool_retry_and_alert
   描述: 增强 start_sandbox_pool.sh 容器池稳定性——启动重试(3次指数退避)+失败告警写入日志
   验收标准:
     - start 操作失败时自动重试 3 次，间隔 1s/2s/4s 指数退避
@@ -210,6 +210,177 @@
 
 > 说明：以下任务目标为优化项目三自身代码，使其持续自主进化。
 > 项目三根目录：`F:\\项目三：多Agent\\`
+
+### Priority: HIGHEST
+
+- [ ] 任务ID: define_agent_roles
+  描述: 定义 Agent 分层角色——将 8 个 Agent 重新定义为 3 个专业化角色，不再模糊指派
+  验收标准:
+    - 新建 agent_roles.py，定义 3 个角色（agent-coder / agent-reviewer / agent-tester），各含：
+      agent-coder（编码者）：
+        · 只做：按模板写代码，不做架构决策
+        · 约束：禁止修改函数签名、禁止删除文件、禁止修改接口
+        · 输入：目标文件 + 改动要求 + 示例代码片段
+      agent-reviewer（审查者）：
+        · 只做：diff 检查，不写代码
+        · 检查项：函数签名变化、测试覆盖率、死代码检测
+        · 输入：改动前 + 改动后 diff
+      agent-tester（测试者）：
+        · 只做：按模板编写测试用例
+        · 约束：使用 sys.modules mock 策略、每个分支至少 1 个测试
+        · 输入：被测文件 + 函数列表 + mock 模板
+    - 保留 3 个未定义槽位（agent 4~6）作为弹性资源
+    - 保留 2 个未定义槽位（agent 7~8）作为未来扩展
+  依赖: 无（此为基础设施，其他优化依赖此任务）
+  预估 token 量: 3000
+
+- [ ] 任务ID: define_layered_delegation
+  描述: 新增分层委托流程——协调者只负责 Layer 1，将 Layer 2 委托给 Agent
+  验收标准:
+    - 在 self_evolve_round.py 或 delegate_optimizer.py 中实现三层决策：
+      Layer 1（协调者必须自己干）：
+        · 扫描代码库，决定"改什么"
+        · 设计接口，定义"怎么改"
+        · 编写代码模板和约束条件
+        · 验收 Agent 产出（diff_content_check + pytest）
+      Layer 2（委托 Agent 干）：
+        · 按模板替换指定的函数体（接口不变）
+        · 补充测试用例（按模板格式）
+        · 整理文档（按格式填空）
+        · 运行指定命令验证
+      Layer 3（协调者验收）：
+        · diff_content_check：确认改动符合预期
+        · pytest 验证通过
+        · lint 检查通过
+        · 不通过则打回 Layer 2 重做
+    - 派发 prompt 中强制含 5 条约束：
+      1. 【禁止】修改任何函数签名
+      2. 【禁止】删除任何文件，只能修改内容
+      3. 【必须】在改动前先 read_file 读取完整文件
+      4. 【必须】用 StrReplace 工具精确替换，不许用 Write 覆盖整文件
+      5. 【必须】改动完成后运行 python -m py_compile <文件路径>
+    - 违反任一条→直接拒绝产出
+  依赖: define_agent_roles（先有角色定义才有分层流程）
+  预估 token 量: 3500
+
+- [ ] 任务ID: diagnose_subagent_failure
+  描述: 诊断子 Agent 为什么不干活——分析 self_evolve_log.json 中所有 delegate 条目，统计成功率/失败模式，写入 diagnosis 字段
+  验收标准:
+    - 扫描 self_evolve_log.json 的 "rounds" 数组中所有含 delegate/subagent 的条目
+    - 统计：总委托次数、成功次数、失败次数、成功率
+    - 归因分析：失败原因是模型太弱？指令不够清晰？任务拆分不合理？协调者过度自信？
+    - 产出诊断报告，写入 self_evolve_log.json 的 diagnosis 字段
+    - 为协调者行为偏差写反思记录（是否所有任务都自己干，不信任子 Agent）
+  预估 token 量: 1500
+
+- [ ] 任务ID: create_delegate_optimizer
+  描述: 创建 delegate_optimizer.py 委托策略优化器——让 swarm 有能力评估"该不该委托"
+  验收标准:
+    - 新增文件 delegate_optimizer.py，实现决策逻辑：
+      if task_complexity < COMPLEXITY_THRESHOLD and agent_success_rate > 0.6:
+          delegate_to_subagent()
+      else:
+          coordinator_handles_directly()
+    - 跟踪三个关键指标：agent_success_rate（近10轮）、task_complexity（按token分级：<1000简单、1000-3000中等、>3000复杂）、round_pressure（预算剩余比例）
+    - 预算充足时多委托试错，预算紧张时保守
+    - 集成到 self_evolve_round.py 的主循环中
+  预估 token 量: 3000
+
+- [ ] 任务ID: create_parallel_dispatcher
+  描述: 创建 parallel_dispatcher.py 并行任务分发器——打破串行模式，同时跑3个Agent
+  验收标准:
+    - 新增文件 parallel_dispatcher.py
+    - 分配策略：Agent-1 拿 HIGH 优先级任务，Agent-2 拿 MEDIUM，Agent-3 拿 LOW（探索性）
+    - 协调者拿"需要精确接口保持"的任务（sync→async 改造、测试文件）
+    - 并发上限 3 个 Agent，超时控制 600s
+    - 集成到 self_evolve_round.py 的主循环中
+    - 效果验证：从串行1个任务变成同时跑3个Agent，吞吐量×3
+  依赖: diagnose_subagent_failure（先诊断再改造）, create_delegate_optimizer
+  预估 token 量: 3500
+
+- [ ] 任务ID: create_agent_capability_map
+  描述: 创建 agent_capability_map.json 能力画像文件，每次委托后记录结果，建立各 Agent 的能力画像
+  验收标准:
+    - 新增文件 agent_capability_map.json，结构按 task_type 索引：{agent_id, task_type, success_rate, avg_tokens, failure_pattern}
+    - 每次 delegate 完成后更新画像（成功/失败、消耗 token、失败原因）
+    - 协调者动态选择 Agent 逻辑：
+      success_rate > 0.5 → 优先派任务
+      success_rate < 0.3 → 仅派简单任务
+      rate=0（新 Agent）→ 派探索性/低风险任务
+    - 集成到 delegate_optimizer.py 的选择逻辑中
+  依赖: create_delegate_optimizer
+  预估 token 量: 2500
+
+- [ ] 任务ID: forced_delegation_rule
+  描述: 在 self_evolve_round.py 增加强制委托规则——每轮至少委托 1 个任务给子 Agent
+  验收标准:
+    - 每轮主循环结束时检查本轮 delegate 次数
+    - 如果 delegate_count == 0，从剩余任务中强制选 1 个低风险任务委托
+    - 即使协调者觉得"自己干更快"也要执行——多 Agent 系统的价值在探索多样性
+    - 记录强制委托事件到 self_evolve_log.json
+  依赖: create_delegate_optimizer, create_agent_capability_map
+  预估 token 量: 1500
+
+- [ ] 任务ID: delegation_validation_loop
+  描述: 每轮自动验证委托指标闭环——子 Agent 委托率≥30%、成功率≥50%、并行数≥2、协调者直接操作率≤70%
+  验收标准:
+    - 每轮结束后自动检查 4 项指标并写入 state.json 的 metrics_validation 字段
+    - 连续 3 轮委托率 < 30% 时自动触发自我诊断日志
+    - 指标不达标时生成改进建议写入下一轮的 todo
+  依赖: forced_delegation_rule, create_parallel_dispatcher
+  预估 token 量: 2000
+
+- [ ] 任务ID: parallel_multi_dispatch
+  描述: 修改任务派发逻辑，支持同时将多个不同任务派发给不同 Agent，并行执行
+  验收标准:
+    - 协调者在每轮开始时扫描所有待办任务
+    - 将可并行的任务（无依赖关系）同时派发给不同 Agent
+    - 例如：同时派任务A给agent-coder、任务B给agent-tester、任务C给agent-reviewer
+    - 汇总各 Agent 产出后统一验收 Layer 3
+    - 每轮至少并行派发 2 个任务
+    - 集成到 parallel_dispatcher.py 中
+  依赖: define_layered_delegation, create_parallel_dispatcher
+  预估 token 量: 3000
+
+- [ ] 任务ID: cost_incentive_mechanism
+  描述: 在成本核算中增加委托激励机制，从成本角度促使协调者委托而非亲力亲为
+  验收标准:
+    - 在 state.json 或 config.yaml 中增加 DELEGATION_INCENTIVE 配置项：
+      coordinator_write_line_threshold: 50   # 协调者自己写超过 50 行时警告
+      delegate_success_bonus_tokens: 1000    # 委托成功节省的 token 预算奖励
+      self_write_overflow_penalty: 500       # 超过阈值的部分扣减预算
+    - 当协调者自己写的代码行数超过阈值时，在日志中输出警告
+    - 委托成功率纳入每轮 metrics 指标
+    - 集成到 delegate_optimizer.py 的决策逻辑中
+  依赖: create_delegate_optimizer
+  预估 token 量: 2500
+
+- [ ] 任务ID: agent_template_library
+  描述: 为每个 Agent 角色创建标准化的 prompt 模板和代码模板，减少因指令不清导致的返工
+  验收标准:
+    - 创建 templates/ 目录，内含：
+      coder_template.md：编码任务标准 prompt，含约束条件和示例
+      tester_template.md：测试任务标准 prompt，含 mock 策略模板和格式要求
+      reviewer_template.md：审查任务标准 prompt，含 diff 检查清单
+    - 每个模板包含：输入格式、输出格式、禁止事项、验证步骤
+    - 模板支持参数化（通过变量替换适应不同任务）
+    - 集成到 define_layered_delegation 的派发 prompt 中
+  依赖: define_agent_roles（先有角色定义才有模板）
+  预估 token 量: 2500
+
+- [ ] 任务ID: standardized_layer3_verification
+  描述: 将协调者验收Agent产出的流程标准化为4步固定步骤，消除审查随意性
+  验收标准:
+    - 每次 Agent 产出后，必须执行以下 4 步验收：
+      Step 1 — 签名检查：grep 确认函数签名未变化
+      Step 2 — 语法检查：python -m py_compile <文件路径>
+      Step 3 — 单元测试：pytest <测试文件> -v
+      Step 4 — diff 对照：对比改动前后，确认只有预期改动
+    - 任何一步失败，记录到 self_evolve_log.json 的 failure_stats，并打回 Agent 重做
+    - 同一任务返工超过 2 次，协调者接管并行自己写完
+    - 集成到 define_layered_delegation 的 Layer 3 中
+  依赖: define_layered_delegation
+  预估 token 量: 2000
 
 ### Priority: HIGH
 
