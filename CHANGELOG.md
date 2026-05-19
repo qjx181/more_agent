@@ -86,3 +86,10 @@
 - parallel_dispatcher.py 并行任务分发器（dispatch_tasks 决策协调者 vs 委托 + 分批并发 + 预算感知）
 - 强制委托验证：subagent qwen2.5:7b 计划不执行（plan-only failure），协调者覆盖
 - +450 行，3 个新文件，commit pending
+
+## Round 43 — 2026-05-19 强制委托规则（forced_delegation_rule）
+- self_evolve_round.py 新增 check_forced_delegation() 函数
+- 每轮结束后自动检查 delegate_count，0委托时输出警告日志
+- 异常安全：文件不存在/JSON解析失败时跳过
+- 委托验证：qwen2.5:7b 子 Agent 零文件产出（读文件但不执行修改），协调者覆盖
+- +36 行，1 个函数，commit pending

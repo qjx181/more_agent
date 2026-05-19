@@ -1,10 +1,10 @@
 {
-  "current_round": 42,
+  "current_round": 43,
   "step": "done",
   "project_one_step": "done",
   "project_three_step": "completed",
-  "started_at": "2026-05-19 14:00:00",
-  "completed_at": "2026-05-19 14:47:34",
+  "started_at": "2026-05-19 15:18:00",
+  "completed_at": "2026-05-19 15:21:00",
   "last_error": null,
   "completed_task_ids": [
     "asyncify_session_service",
@@ -22,7 +22,8 @@
     "cost_incentive_mechanism",
     "create_parallel_dispatcher",
     "create_agent_capability_map",
-    "standardized_layer3_verification"
+    "standardized_layer3_verification",
+    "forced_delegation_rule"
   ],
   "in_progress_tasks": [],
   "pending_tasks": [
@@ -31,7 +32,6 @@
     "metrics_sqlite_storage",
     "git_autopush_safety",
     "json_logs_startup_flag",
-    "forced_delegation_rule",
     "delegation_validation_loop",
     "parallel_multi_dispatch"
   ],
@@ -46,13 +46,13 @@
   "manual_intervention_needed": false,
   "pending_review": [],
   "cost_tracker": {
-    "current_task_id": "sandbox_pool_retry_and_alert",
-    "estimated_tokens": 1000,
-    "actual_tokens": 500,
-    "ratio": 0.5,
+    "current_task_id": null,
+    "estimated_tokens": 1500,
+    "actual_tokens": 0,
+    "ratio": 0,
     "status": "normal",
     "tier": "yellow",
-    "dollar_spent_today": 2.15
+    "dollar_spent_today": 2.85
   },
   "daily_budget": {
     "dollar_limit": 5.0,
@@ -61,26 +61,14 @@
     "readonly_mode": false,
     "last_budget_warning": null,
     "tier": "yellow",
-    "tier_reason": "当日花费 $2.85（含0.40本轮回估），黄色模式"
+    "tier_reason": "当日花费 $2.85，黄色模式（跳过 feature/refactor，infrastructure/debug 不受限）"
   },
   "failure_stats": {
     "last_analysis": "2026-05-18T20:43:00",
     "weekly_patterns": {
-      "test_creation": {
-        "failed": 3,
-        "total": 3,
-        "rate": 1.0
-      },
-      "signature_conversion": {
-        "failed": 1,
-        "total": 1,
-        "rate": 1.0
-      },
-      "api_misuse": {
-        "failed": 1,
-        "total": 1,
-        "rate": 1.0
-      }
+      "test_creation": {"failed": 3, "total": 3, "rate": 1.0},
+      "signature_conversion": {"failed": 1, "total": 1, "rate": 1.0},
+      "api_misuse": {"failed": 1, "total": 1, "rate": 1.0}
     },
     "failure_injection_text": "⚠️ 历史经验：避免委托子Agent创建从零的测试文件或执行框架类任务。优先协调者直接write_file。避免涉及中文路径的cd操作。"
   },
@@ -97,19 +85,17 @@
   "cost_strategy": {
     "tier2_boundary": 2.0,
     "tier3_boundary": 4.5,
-    "skip_on_yellow": [
-      "feature",
-      "refactor"
-    ]
+    "skip_on_yellow": ["feature", "refactor"]
   },
   "diagnosis": {
-    "delegate_success_rate": 1.0,
-    "overall_success_rate": 1.0,
-    "delegated_rounds": 3,
+    "delegate_success_rate": 0.75,
+    "overall_success_rate": 0.96,
+    "delegated_rounds": 4,
     "failure_patterns": {
       "environment_dependency": 2,
-      "mock_import_failure": 2
+      "mock_import_failure": 2,
+      "zero_file_output": 1
     },
-    "updated_at": "2026-05-19T14:47:34.029927"
+    "updated_at": "2026-05-19T15:21:00"
   }
 }

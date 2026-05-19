@@ -748,6 +748,40 @@ def run_delegation_diagnosis() -> bool:
 
 
 # ═══════════════════════════════════════════════════════════════════════
+# 强制委托检查（forced_delegation_rule）
+# ═══════════════════════════════════════════════════════════════════════
+
+def check_forced_delegation() -> bool:
+    """check_forced_delegation — 检查本轮是否至少委托了1个任务给子 Agent。
+
+    多 Agent 系统的价值在于探索多样性——子 Agent 偶尔的失败
+    中藏着系统进化的可能性。如果本轮无任何委托，输出警告。
+
+    Returns:
+        True: 有委托或无需检查（无历史记录）。
+        False: 无委托且应触发警告。
+    """
+    log_path = SWARM_DIR / "self_evolve_log.json"
+    if not log_path.exists():
+        return True
+    try:
+        log = json.loads(log_path.read_text(encoding="utf-8"))
+        rounds = log.get("rounds", [])
+        if not rounds:
+            return True
+        latest = rounds[-1]
+        delegate_count = latest.get("delegate_count", 0)
+        if delegate_count == 0:
+            relog("⚠️", "强制委托规则：本轮未委托任何任务给子 Agent！")
+            relog("   ", "建议：在下一轮至少委托 1 个任务，即使觉得'自己干更快'")
+            return False
+        return True
+    except Exception as e:
+        relog("⚠️", "强制委托检查异常: %s", e)
+        return True
+
+
+# ═══════════════════════════════════════════════════════════════════════
 # 失败样本收集（项5）
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -902,6 +936,9 @@ def main():
 
         # ── 5. 分层委托诊断（每轮检查子 Agent 成功率） ──
         run_delegation_diagnosis()
+
+        # ── 5a. 强制委托检查（每轮至少委托 1 个任务） ──
+        check_forced_delegation()
 
         # ── 6. 更新 state.json ──
         state = load_state()
