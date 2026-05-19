@@ -50,14 +50,30 @@ MAX_LOG_DAYS = 7
 
 # ─── 日志 ──────────────────────────────────────────────────────────────
 
+# JSON 日志模式（--json-logs 启动参数控制）
+_JSON_MODE = False
+
+
+def _format_log(level: str, msg: str) -> str:
+    """格式化单条日志（纯文本或 JSON）。"""
+    ts = datetime.now().strftime("%H:%M:%S")
+    if _JSON_MODE:
+        return json.dumps(
+            {"timestamp": ts, "level": level, "message": msg},
+            ensure_ascii=False,
+        )
+    return f"[{ts}] {level} {msg}"
+
 
 def relog(tag: str, *args) -> None:
-    """简易日志输出（控制台 + 文件）。"""
-    msg = f"[{datetime.now().strftime('%H:%M:%S')}] {tag}" + (" " + " ".join(str(a) for a in args) if args else "")
-    print(msg)
+    """简易日志输出（控制台 + 文件）。支持 JSON 模式。"""
+    text = ("" if not args else " ".join(str(a) for a in args))
+    msg = f"{tag}" + (f" {text}" if text else "")
+    line = _format_log("INFO", msg)
+    print(line)
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     with LOG_FILE.open("a", encoding="utf-8") as f:
-        f.write(msg + "\n")
+        f.write(line + "\n")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -168,11 +184,19 @@ def check_disk_space() -> dict:
 
 
 def check_cost_over_budget() -> Optional[str]:
-    """检查当日 API 花费是否超预算。"""
+    """检查当日 API 花费是否超预算。优先从 cost_tracker_db SQLite 读取。"""
+    try:
+        from cost_tracker_db import get_today_spent  # type: ignore
+
+        dollar_spent = get_today_spent()
+    except ImportError:
+        # 降级：从 state.json 读取
+        state = load_state()
+        budget = state.get("daily_budget", {})
+        dollar_spent = budget.get("dollar_spent_today", 0)
+
     state = load_state()
-    budget = state.get("daily_budget", {})
-    dollar_spent = budget.get("dollar_spent_today", 0)
-    dollar_limit = budget.get("dollar_limit", 5.0)
+    dollar_limit = state.get("daily_budget", {}).get("dollar_limit", 5.0)
 
     if dollar_spent >= dollar_limit * 0.9:
         warning = f"当日花费 ${dollar_spent:.2f} / 限额 ${dollar_limit:.2f}，接近橙色模式"
@@ -579,6 +603,21 @@ def main():
       8. ⬆️ 并行任务规划（新）
       9. 更新 state.json
     """
+    # ── 0a. CLI 参数解析（--json-logs） ──
+    import argparse
+
+    arg_parser = argparse.ArgumentParser(description="项目三自进化后勤脚本")
+    arg_parser.add_argument(
+        "--json-logs",
+        action="store_true",
+        default=False,
+        help="启用 JSON 格式日志输出",
+    )
+    cli_args, _ = arg_parser.parse_known_args()
+    if cli_args.json_logs:
+        global _JSON_MODE
+        _JSON_MODE = True
+
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     relog("=" * 60, "")
     relog("后勤脚本启动 — %s", timestamp)
