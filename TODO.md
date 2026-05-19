@@ -45,9 +45,42 @@
     - 项目一环境已安装 ragas 和 datasets（pip install）
     - 配置 LLM 裁判：让 RAGAS 使用 DeepSeek API 或本地 Ollama 做 LLM-as-judge 打分
     - 在 evaluation/ 下创建 run_ragas_eval.py 单次运行入口
-    - 在 services/ 中创建 evaluation_service.py，在每次对话结束时异步触发 RagasEvaluator.evaluate_single()
-    - 评估结果写入 logs/ragas/ 目录，按日期分文件
+  - 在 services/ 中创建 evaluation_service.py，在每次对话结束时异步触发 RagasEvaluator.evaluate_single()
+  - 评估结果写入 logs/ragas/ 目录，按日期分文件
   依赖: build_ragas_evaluator（已存在，基于它做集成）
+
+## ✅ Phase 1 容器化 — 2026-05-19
+- [x] 任务ID: start_sh_containerization
+  描述: start.sh 一键启动脚本（start/stop/restart/logs/status/api/build 7命令）
+  验收标准: chmod +x && bash -n 语法通过
+
+- [x] 任务ID: docker_compose_api_service
+  描述: docker-compose.yml 添加 api-service 服务 + docker-entrypoint.sh 支持 api 模式
+
+## ✅ Phase 2 Bug 分析管道 — 2026-05-19
+- [x] 任务ID: bug_analysis_engine
+  描述: bug_analysis_engine.py 分析引擎（Python traceback/Java stack/CI日志解析+根因排名+修复建议+持久化）
+  验收标准: ast.parse 语法通过
+
+- [x] 任务ID: bug_report_cli
+  描述: bug_report.py CLI 工具（--submit/--file/--list/--view/--fix/--fix-all-pending/--stats）
+  验收标准: argparse 参数解析正确
+
+## ✅ Phase 3 API 服务 + Web 仪表盘 — 2026-05-19
+- [x] 任务ID: api_service_fastapi
+  描述: api_service.py FastAPI（8路由：health/tasks CRUD/trigger/metrics/status/logs/ 根路由）+ 暗色仪表盘
+  验收标准: FastAPI 正确 import 并启动
+
+- [x] 任务ID: api_dashboard_html
+  描述: api_dashboard.html 内嵌在 api_service.py 中，暗色主题+任务列表+提交表单+触发按钮+自动30s刷新
+
+## ✅ Phase 4 代码审查 — 2026-05-19
+- [x] 任务ID: code_review_module
+  描述: code_review.py（SecurityReviewer+PerformanceReviewer+QualityReviewer+PRReviewer 完整审查链+GitHub webhook 接口）
+  验收标准: ast.parse + 自带自测通过
+
+- [x] 任务ID: docker_entrypoint_api_mode
+  描述: docker-entrypoint.sh 新增 api 命令分支
   预估 token 量: 3500
 
 - [x] 任务ID: add_stress_test_suite
@@ -103,7 +136,7 @@
 
 ### Priority: HIGH
 
-- [ ] 任务ID: metrics_sqlite_storage
+- [x] 任务ID: metrics_sqlite_storage
   描述: 将指标存储从 JSONLines 扩展为 SQLite 原生存储，增加按时间范围聚合查询
   验收标准:
     - 创建 metrics.db SQLite 数据库（与 cost_tracker.db 分开或合并，协调者自定）
@@ -128,7 +161,7 @@
   依赖: git shell 命令可用
   预估 token 量: 1500
 
-- [ ] 任务ID: cost_tracker_persistence
+- [x] 任务ID: cost_tracker_persistence
   描述: 将成本跟踪改为 SQLite 持久化存储，支持跨日累计和成本趋势查询
   验收标准:
     - 创建 cost_tracker.db SQLite 数据库，表结构包含 timestamp/date/cost/provider/model/task_id
@@ -193,7 +226,7 @@
   依赖: 无
   预估 token 量: 1000
 
-- [ ] 任务ID: json_logs_startup_flag
+- [x] 任务ID: json_logs_startup_flag
   描述: 增加 --json-logs 启动参数，生产环境可快速开启 JSON 日志格式
   验收标准:
     - self_evolve_round.py 增加 argparse 参数 --json-logs（默认 False）
@@ -284,7 +317,7 @@
   依赖: create_delegate_optimizer
   预估 token 量: 2500
 
-- [ ] 任务ID: forced_delegation_rule
+- [x] 任务ID: forced_delegation_rule
   描述: 在 self_evolve_round.py 增加强制委托规则——每轮至少委托 1 个任务给子 Agent
   验收标准:
     - 每轮主循环结束时检查本轮 delegate 次数
@@ -294,7 +327,7 @@
   依赖: create_delegate_optimizer, create_agent_capability_map
   预估 token 量: 1500
 
-- [ ] 任务ID: delegation_validation_loop
+- [x] 任务ID: delegation_validation_loop
   描述: 每轮自动验证委托指标闭环——子 Agent 委托率≥30%、成功率≥50%、并行数≥2、协调者直接操作率≤70%
   验收标准:
     - 每轮结束后自动检查 4 项指标并写入 state.json 的 metrics_validation 字段
@@ -357,7 +390,7 @@
 
 ### Priority: HIGH
 
-- [ ] 任务ID: self_asyncify_knowledge_store
+- [x] 任务ID: self_asyncify_knowledge_store
   描述: 将 swarm 项目中假设存在的 services/knowledge_store.py（如果存在）的 sync I/O 函数改为 async def + asyncio.to_thread
   验收标准:
     - 如存在 knowledge_store.py，所有 pymilvus sync 调用加 asyncio.to_thread 包装

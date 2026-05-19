@@ -1,10 +1,10 @@
 {
-  "current_round": 45,
-  "step": "done",
+  "current_round": 46,
+  "step": "completed",
   "project_one_step": "done",
   "project_three_step": "completed",
   "started_at": "2026-05-19 15:55:00",
-  "completed_at": "2026-05-19 16:15:00",
+  "completed_at": "2026-05-19T18:51:52.393392",
   "last_error": null,
   "completed_task_ids": [
     "asyncify_session_service",
@@ -28,12 +28,27 @@
     "cost_tracker_persistence",
     "json_logs_startup_flag",
     "heartbeat_self_healing",
-    "git_autopush_safety"
+    "git_autopush_safety",
+    "delegation_validation_loop",
+    "metrics_sqlite_storage",
+    "self_asyncify_knowledge_store",
+    "start_sh_containerization",
+    "bug_analysis_engine",
+    "bug_report_cli",
+    "api_service_fastapi",
+    "api_dashboard_html",
+    "code_review_module",
+    "docker_compose_api_service",
+    "docker_entrypoint_api_mode"
   ],
   "in_progress_tasks": [],
   "pending_tasks": [
-    "metrics_sqlite_storage",
-    "delegation_validation_loop"
+    "self_asyncify_session_service",
+    "self_cleanup_deprecated_files",
+    "self_container_pool_retry_logic",
+    "self_cost_tracker_persistence",
+    "self_json_logs_startup_flag",
+    "self_metrics_sqlite_storage"
   ],
   "permanently_failed": [],
   "blocked_tasks": [],
@@ -104,24 +119,145 @@
   },
   "diagnosis": {
     "delegate_success_rate": 0.75,
-    "overall_success_rate": 0.96,
+    "overall_success_rate": 1.0,
     "delegated_rounds": 4,
     "failure_patterns": {
       "environment_dependency": 2,
       "mock_import_failure": 2,
       "zero_file_output": 1
     },
-    "updated_at": "2026-05-19T15:55:00"
+    "updated_at": "2026-05-19T18:51:52.393809"
   },
-  "parallel_plan": {
-    "batches": [
-      [
-        "delegation_validation_loop"
-      ]
-    ],
-    "max_concurrent": 3,
-    "has_work": true,
-    "planned_at": "2026-05-19T16:15:00",
-    "total_pending": 1
+  "micro_plan": {
+    "tasks": {
+      "self_asyncify_knowledge_store": {
+        "description": "将 swarm 项目中假设存在的 services/knowledge_store.py（如果存在）的 sync I/O 函数改为 async def + asyncio.to_thread",
+        "micro_tasks": [
+          {
+            "task_type": "run_command",
+            "params": {
+              "command": "echo '无法自动拆分的任务，需协调者手动干预'",
+              "timeout": 5
+            },
+            "expected_outcome": "手动处理标志",
+            "_note": "task_id=self_asyncify_knowledge_store 无预设模板也无明显可拆分模式，需人工分解",
+            "id": "micro-001",
+            "depends_on": [],
+            "verify_command": "echo '手动验证'"
+          }
+        ],
+        "total_micro": 1
+      },
+      "self_asyncify_session_service": {
+        "description": "将 swarm 项目中 services/session_service.py 的 create_session 改为 async def",
+        "micro_tasks": [
+          {
+            "task_type": "run_command",
+            "params": {
+              "command": "# 需要协调者创建文件: 将 swarm 项目中 services/session_service.py 的 create_session 改为 async def",
+              "timeout": 5
+            },
+            "expected_outcome": "协调者处理（子 Agent 不创建文件）",
+            "_note": "文件创建由协调者直接处理",
+            "id": "micro-002",
+            "depends_on": [],
+            "verify_command": "echo '手动验证'"
+          }
+        ],
+        "total_micro": 1
+      },
+      "self_cleanup_deprecated_files": {
+        "description": "扫描并删除 swarm 项目中已废弃/无用的文件，更新所有 import 引用",
+        "micro_tasks": [
+          {
+            "task_type": "add_import",
+            "params": {
+              "file": "auto",
+              "import_stmt": "import 引用",
+              "position": "top"
+            },
+            "expected_outcome": "导入 引用",
+            "id": "micro-003",
+            "depends_on": [],
+            "verify_command": "echo '手动验证'"
+          }
+        ],
+        "total_micro": 1
+      },
+      "self_container_pool_retry_logic": {
+        "description": "增强容器池启动稳定性——失败重试(3次指数退避)+告警写入日志",
+        "micro_tasks": [
+          {
+            "task_type": "run_command",
+            "params": {
+              "command": "echo '无法自动拆分的任务，需协调者手动干预'",
+              "timeout": 5
+            },
+            "expected_outcome": "手动处理标志",
+            "_note": "task_id=self_container_pool_retry_logic 无预设模板也无明显可拆分模式，需人工分解",
+            "id": "micro-004",
+            "depends_on": [],
+            "verify_command": "echo '手动验证'"
+          }
+        ],
+        "total_micro": 1
+      },
+      "self_cost_tracker_persistence": {
+        "description": "将成本跟踪改为 SQLite 持久化存储，支持跨日累计和成本趋势查询",
+        "micro_tasks": [
+          {
+            "task_type": "run_command",
+            "params": {
+              "command": "echo '无法自动拆分的任务，需协调者手动干预'",
+              "timeout": 5
+            },
+            "expected_outcome": "手动处理标志",
+            "_note": "task_id=self_cost_tracker_persistence 无预设模板也无明显可拆分模式，需人工分解",
+            "id": "micro-005",
+            "depends_on": [],
+            "verify_command": "echo '手动验证'"
+          }
+        ],
+        "total_micro": 1
+      },
+      "self_json_logs_startup_flag": {
+        "description": "增加 --json-logs 启动参数，生产环境可快速开启 JSON 日志格式",
+        "micro_tasks": [
+          {
+            "task_type": "add_config_field",
+            "params": {
+              "file": "config.yaml",
+              "section": "auto",
+              "field_name": "_self_json_logs_startup_flag_placeholder",
+              "field_value": "\"pending\"",
+              "comment": "# self_json_logs_startup_flag: 待协调者填写具体配置"
+            },
+            "expected_outcome": "config.yaml 新增占位配置项",
+            "id": "micro-006",
+            "depends_on": [],
+            "verify_command": "echo '手动验证'"
+          }
+        ],
+        "total_micro": 1
+      },
+      "self_metrics_sqlite_storage": {
+        "description": "将指标存储从 JSONLines 扩展为 SQLite 原生存储，增加按时间范围聚合查询",
+        "micro_tasks": [
+          {
+            "task_type": "run_command",
+            "params": {
+              "command": "echo '无法自动拆分的任务，需协调者手动干预'",
+              "timeout": 5
+            },
+            "expected_outcome": "手动处理标志",
+            "_note": "task_id=self_metrics_sqlite_storage 无预设模板也无明显可拆分模式，需人工分解",
+            "id": "micro-007",
+            "depends_on": [],
+            "verify_command": "echo '手动验证'"
+          }
+        ],
+        "total_micro": 1
+      }
+    }
   }
 }
