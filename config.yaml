@@ -330,3 +330,31 @@ git:
     # 类型: int，最小值: 1
     # 默认: 5
     retry_delay_seconds: 5
+
+# ──────────────────────────────────────────────────────────────────
+# delegation_incentive 节 — 成本激励机制
+# ──────────────────────────────────────────────────────────────────
+# 控制协调者 vs 子 Agent 的委托成本激励。
+# coordinator_write_line_threshold: 协调者自写代码超此行数时发出警告
+# delegate_success_bonus_tokens: 委托成功后获得的 token 预算奖励
+# self_write_overflow_penalty: 超阈值的部分扣减的预算
+# ──────────────────────────────────────────────────────────────────
+delegation_incentive:
+  # coordinator_write_line_threshold: 协调者单次自写代码行数阈值
+  # 超过此值在日志中输出警告并扣减预算
+  # 类型: int，最小值: 1
+  # 默认: 50
+  coordinator_write_line_threshold: 50
+
+  # delegate_success_bonus_tokens: 委托成功奖励的 token 预算
+  # 每成功委托一次，增加等量的 token 预算用于下次 API 调用
+  # 类型: int，最小值: 0
+  # 默认: 1000
+  delegate_success_bonus_tokens: 1000
+
+  # self_write_overflow_penalty: 超阈值扣减的预算
+  # 协调者自写代码超过 coordinator_write_line_threshold 时，
+  # 每超一行扣减此行数的预算
+  # 类型: int，最小值: 0
+  # 默认: 500
+  self_write_overflow_penalty: 500
