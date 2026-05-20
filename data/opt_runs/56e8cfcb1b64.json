@@ -1,0 +1,17 @@
+{
+  "run_id": "56e8cfcb1b64",
+  "target_dir": "/mnt/f/项目三：多Agent",
+  "dimensions": [
+    "deadcode"
+  ],
+  "type": "auto",
+  "status": "completed",
+  "total_rounds": 3,
+  "final_score": 88,
+  "score_history": [
+    88,
+    88,
+    88
+  ],
+  "started_at": "2026-05-20T14:38:37.374955"
+}

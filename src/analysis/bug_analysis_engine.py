@@ -17,7 +17,6 @@ import re
 import json
 import datetime
 from pathlib import Path
-from typing import Optional
 
 
 # ── 持久化 ──────────────────────────────────────────────────────────────
@@ -804,3 +803,4 @@ ValueError: invalid literal for int() with base 10: 'abc'"""
     print("=== 排名原因 ===")
     for c in rank_possible_causes(result):
         print(f"  [{c['probability']:.0%}] {c['cause']}")
+

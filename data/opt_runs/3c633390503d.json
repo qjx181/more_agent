@@ -1,0 +1,34 @@
+{
+  "status": "completed",
+  "target_dir": "/mnt/f/项目三：多Agent",
+  "dimensions": [
+    "deadcode"
+  ],
+  "started_at": "2026-05-20T14:43:04.702874",
+  "phases": [],
+  "score_before": 88,
+  "total_issues": 4,
+  "critical_issues": 0,
+  "scan_result": {
+    "overall_score": 88,
+    "total_issues": 4,
+    "critical_issues": 0
+  },
+  "fixes": {
+    "attempted": 0,
+    "succeeded": 0,
+    "failed": 0,
+    "details": []
+  },
+  "score_after": 88,
+  "total_after": 4,
+  "critical_after": 0,
+  "score_delta": 0,
+  "rescanned": {
+    "overall_score": 88,
+    "total_issues": 4,
+    "critical_issues": 0
+  },
+  "finished_at": "2026-05-20T14:43:14.222300",
+  "run_id": "3c633390503d"
+}

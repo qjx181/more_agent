@@ -24,7 +24,6 @@
 
 import json
 from pathlib import Path
-from typing import Optional
 
 # ─── 路径（自动计算，不依赖硬编码）─────────────────────────────────────
 # 位于 src/agents/，向上三级到项目根目录
@@ -70,7 +69,6 @@ def dispatch_tasks(
     """
     # 尝试导入 delegate_optimizer
     try:
-        from delegate_optimizer import should_delegate, get_agent_capability
         OPTIMIZER_AVAILABLE = True
     except ImportError:
         OPTIMIZER_AVAILABLE = False
@@ -342,3 +340,5 @@ def parallel_dispatch(
             f"  ✍️  协调者: {task.get('task_id', task.get('任务ID', '?'))}",
             flush=True,
         )
+
+

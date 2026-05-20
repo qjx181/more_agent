@@ -1,0 +1,145 @@
+{
+  "status": "completed",
+  "target_dir": "/mnt/f/项目三：多Agent",
+  "dimensions": [
+    "quality"
+  ],
+  "started_at": "2026-05-20T14:43:48.722734",
+  "phases": [],
+  "score_before": 100,
+  "total_issues": 8238,
+  "critical_issues": 0,
+  "scan_result": {
+    "overall_score": 100,
+    "total_issues": 8238,
+    "critical_issues": 0
+  },
+  "fixes": {
+    "attempted": 10,
+    "succeeded": 6,
+    "failed": 4,
+    "details": [
+      {
+        "issue_type": "unused_import",
+        "severity": "low",
+        "file": "/mnt/f/项目三：多Agent/src/agents/micro_delegation.py",
+        "line": 23,
+        "dimension": "代码质量",
+        "fix_result": {
+          "success": true,
+          "action": "删除未使用的 import: from typing import Any, Optional"
+        }
+      },
+      {
+        "issue_type": "unused_import",
+        "severity": "low",
+        "file": "/mnt/f/项目三：多Agent/src/agents/micro_delegation.py",
+        "line": 33,
+        "dimension": "代码质量",
+        "fix_result": {
+          "success": false,
+          "error": "行 33 不是 import 语句: except ImportError:"
+        }
+      },
+      {
+        "issue_type": "unused_import",
+        "severity": "low",
+        "file": "/mnt/f/项目三：多Agent/src/agents/micro_delegation.py",
+        "line": 33,
+        "dimension": "代码质量",
+        "fix_result": {
+          "success": false,
+          "error": "行 33 不是 import 语句: except ImportError:"
+        }
+      },
+      {
+        "issue_type": "unused_import",
+        "severity": "low",
+        "file": "/mnt/f/项目三：多Agent/src/agents/micro_delegation.py",
+        "line": 33,
+        "dimension": "代码质量",
+        "fix_result": {
+          "success": false,
+          "error": "行 33 不是 import 语句: except ImportError:"
+        }
+      },
+      {
+        "issue_type": "unused_import",
+        "severity": "low",
+        "file": "/mnt/f/项目三：多Agent/src/agents/parallel_dispatcher.py",
+        "line": 27,
+        "dimension": "代码质量",
+        "fix_result": {
+          "success": true,
+          "action": "删除未使用的 import: from typing import Optional"
+        }
+      },
+      {
+        "issue_type": "unused_import",
+        "severity": "low",
+        "file": "/mnt/f/项目三：多Agent/src/agents/parallel_dispatcher.py",
+        "line": 73,
+        "dimension": "代码质量",
+        "fix_result": {
+          "success": false,
+          "error": "行 73 不是 import 语句: OPTIMIZER_AVAILABLE = True"
+        }
+      },
+      {
+        "issue_type": "unused_import",
+        "severity": "low",
+        "file": "/mnt/f/项目三：多Agent/src/analysis/bug_analysis_engine.py",
+        "line": 20,
+        "dimension": "代码质量",
+        "fix_result": {
+          "success": true,
+          "action": "删除未使用的 import: from typing import Optional"
+        }
+      },
+      {
+        "issue_type": "unused_import",
+        "severity": "low",
+        "file": "/mnt/f/项目三：多Agent/src/analysis/code_review.py",
+        "line": 26,
+        "dimension": "代码质量",
+        "fix_result": {
+          "success": true,
+          "action": "删除未使用的 import: from typing import Optional"
+        }
+      },
+      {
+        "issue_type": "unused_import",
+        "severity": "low",
+        "file": "/mnt/f/项目三：多Agent/src/analysis/evolution_engine.py",
+        "line": 18,
+        "dimension": "代码质量",
+        "fix_result": {
+          "success": true,
+          "action": "删除未使用的 import: import shutil"
+        }
+      },
+      {
+        "issue_type": "unused_import",
+        "severity": "low",
+        "file": "/mnt/f/项目三：多Agent/src/analysis/evolution_engine.py",
+        "line": 20,
+        "dimension": "代码质量",
+        "fix_result": {
+          "success": true,
+          "action": "删除未使用的 import: import traceback"
+        }
+      }
+    ]
+  },
+  "score_after": 100,
+  "total_after": 8232,
+  "critical_after": 0,
+  "score_delta": 0,
+  "rescanned": {
+    "overall_score": 100,
+    "total_issues": 8232,
+    "critical_issues": 0
+  },
+  "finished_at": "2026-05-20T14:43:56.347277",
+  "run_id": "40a0aef8f557"
+}

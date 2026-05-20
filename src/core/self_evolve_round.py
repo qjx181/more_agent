@@ -7,7 +7,8 @@
   3. 成本熔断检查
   4. 项目一同步（git pull + commit）
   5. 项目三同步（git pull + commit）
-  6. 🔬 Bug 管道（代码审查 → Bug 分析 → 自动修复 → pytest 验证 → 失败模式学习）
+  6. 🚀 持续优化引擎（九维全覆盖，任意目标项目）：
+       扫一切可扫 → 优一切可优 → 验一切可验 → 记一切可记 → 下次更快
   7. 分层委托诊断 + 强制委托检查
   8. ⬆️ 并行任务规划（微委托集成）
   9. 更新 state.json
@@ -65,6 +66,53 @@ def _get_project1_dir() -> Path:
 
 PROJECT1_DIR = _get_project1_dir()
 
+
+def _get_config() -> dict:
+    """从 config.yaml 读取完整配置（无 yaml 依赖）。"""
+    cfg_path = SWARM_DIR / "config.yaml"
+    if not cfg_path.exists():
+        return {}
+    try:
+        text = cfg_path.read_text(encoding="utf-8")
+        # 简单 YAML 解析：提取顶层 key: value 对
+        result = {}
+        current_key = None
+        current_indent = 0
+        in_list = False
+        list_items = []
+        for raw_line in text.split("\n"):
+            line = raw_line.lstrip()
+            if not line or line.startswith("#"):
+                continue
+            indent = len(raw_line) - len(line)
+            if indent == 0 and ":" in line:
+                if current_key and in_list:
+                    result[current_key] = list_items
+                    list_items = []
+                    in_list = False
+                current_key = line.split(":")[0].strip()
+                current_indent = indent
+                value = line.split(":", 1)[1].strip().strip("'\"").strip()
+                if value:
+                    result[current_key] = value
+                elif not line.rstrip().endswith(":"):
+                    result[current_key] = value
+                else:
+                    result[current_key] = None
+            elif current_key and indent > current_indent and ":" not in line:
+                # 列表项（以 - 开头）
+                if line.startswith("- "):
+                    item = line[1:].strip().strip("'\"").strip()
+                    if item:
+                        list_items.append(item)
+                    in_list = True
+        if current_key and in_list:
+            result[current_key] = list_items
+        return result
+    except Exception:
+        return {}
+
+
 # ─── 审计与安全集成 ────────────────────────────────────────────────────
 try:
     from src.infra.audit_trail import audit_log
@@ -84,298 +132,172 @@ PID_FILE = SWARM_DIR / ".self_evolve_round.pid"
 TODO_FILE = SWARM_DIR / "docs" / "TODO.md"
 LOG_FILE = SWARM_DIR / "logs" / "self_evolve.log"
 
-# ─── Bug 管道配置 ────────────────────────────────────────────────────────
-# 哪些 code_review 严重级别触发自动分析
-AUTO_ANALYZE_SEVERITIES = {"critical", "high"}
-# 哪些置信度以上的自动修复
-AUTO_FIX_CONFIDENCE_THRESHOLD = 0.85
-# 每轮最多自动修复的问题数（防止失控）
-MAX_AUTO_FIXES_PER_ROUND = 5
-# 不自动修复的 issue 类型白名单
-AUTO_FIX_ISSUE_TYPES = {
-    "sql_injection", "command_injection", "secret_leak",
-    "n_plus_one", "sync_io_in_async", "memory_leak",
-    "sync_wrapper_raises",
-}
+# ─── 优化引擎配置 ─────────────────────────────────────────────────────────
+# 九维全覆盖（代码质量/测试/性能/架构/安全/文档/配置/异步化/死代码）
+OPT_DIMENSIONS = [
+    "security",          # 安全：SQL注入/命令注入/密钥泄露/XSS
+    "performance",       # 性能：N+1查询/sync阻塞/内存泄漏
+    "asyncification",   # 异步化：sync-async边界问题
+    "quality",           # 代码质量：未用import/过深嵌套/硬编码
+    "testing",           # 测试：缺失测试/覆盖不足
+    "architecture",     # 架构：循环依赖/上帝文件/紧耦合
+    "documentation",    # 文档：缺失docstring/无type hint
+    "configuration",     # 配置：硬编码配置/不一致配置
+    "deadcode",         # 死代码：未调用函数/不可达文件
+]
+# 每轮最多执行优化数量
+MAX_OPTIMIZATIONS_PER_ROUND = 10
+# 自动修复置信度阈值
+OPT_CONFIDENCE_THRESHOLD = 0.75
 
 
-def _issue_to_traceback(issue: dict) -> str:
-    """将 code_review 的 issue 转换为 Python traceback 格式文本。
+def run_optimization_pipeline(
+    scan_targets: list[Path],
+    timestamp: str,
+    dimensions: Optional[list[str]] = None,
+    dry_run: bool = False,
+) -> dict:
+    """run_optimization_pipeline — 持续优化引擎主入口（九维全覆盖）
 
-    bug_analysis_engine.analyze_bug() 接受纯文本输入，这里生成
-    符合 Python traceback 格式的字符串，使分析器能复用其 FIX_SUGGESTIONS
-    和置信度计算逻辑。
-    """
-    issue_type = issue.get("type", "CodeReviewIssue")
-    severity = issue.get("severity", "medium")
-    file_path = issue.get("file", "")
-    line = issue.get("line", 0)
-    description = issue.get("description", "")
-    code = issue.get("code", "")
+    核心公式：扫一切可扫 → 优一切可优 → 验一切可验 → 记一切可记 → 下次更快
 
-    # 映射 issue type → Python 异常类型（供 FIX_SUGGESTIONS 匹配用）
-    TYPE_TO_EXCEPTION = {
-        "sql_injection": "SyntaxError: possible SQL injection risk",
-        "command_injection": "OSError: possible command injection",
-        "secret_leak": "SecurityWarning: hardcoded secret detected",
-        "xss": "SecurityWarning: XSS risk",
-        "n_plus_one": "PerformanceWarning: N+1 query pattern",
-        "sync_io_in_async": "RuntimeError: sync I/O in async context",
-        "memory_leak": "MemoryWarning: possible memory leak",
-        "sync_wrapper_raises": "RuntimeError: sync wrapper raises in async context",
-        "asyncio_run_in_loop": "RuntimeError: asyncio.run in running loop",
-        "sync_calls_async": "RuntimeError: sync calls async without await",
-        "unused_import": "ImportWarning: unused import",
-        "deep_nesting": "CodeSmell: deeply nested code",
-        "hardcoded_value": "CodeSmell: hardcoded value",
-        "missing_error_handling": "ErrorHandlingWarning: missing try/except",
-        "long_function": "CodeSmell: function too long",
-    }
-
-    exc_type = TYPE_TO_EXCEPTION.get(issue_type, f"CodeReviewIssue: {issue_type}")
-    msg = f"{exc_type}: {description[:120]}"
-    if code:
-        msg = f"{exc_type}: {description[:80]} | Code: {code[:60]}"
-
-    tb = f"""Traceback (most recent call last):
-  File "{file_path}", line {line}, in _code_review_auto_fix
-    {code or '...'}
-{issue_type.title()}: {msg}"""
-    return tb
-
-
-def _issue_to_bug_dict(issue: dict, traceback_text: str, bug_analysis: dict) -> dict:
-    """将 code_review issue + bug_analysis 结果合并为 execute_bug_fix 可用的格式。"""
-    bug = bug_analysis.copy()
-    bug["issue_type"] = issue.get("type", "unknown")
-    bug["severity"] = issue.get("severity", "medium")
-    bug["suggestion"] = issue.get("suggestion", "")
-    bug["raw_traceback"] = traceback_text
-    bug["fix_candidate"] = issue.get("type") in AUTO_FIX_ISSUE_TYPES
-    return bug
-
-
-def run_bug_pipeline(scan_target: Path, timestamp: str) -> dict:
-    """完整的 Bug 扫描 → 分析 → 修复 → 验证 管道。
-
-    每轮调用一次，执行以下步骤：
-      1. code_review.review_project() 扫描目标项目
-      2. 将 critical/high 级别问题转换为 traceback 格式
-      3. bug_analysis_engine.analyze_bug() 分析每个问题
-      4. 对高置信度问题执行 execute_bug_fix()
-      5. py_compile 验证修复后语法正确
-      6. 更新 state.json 的 error_patterns / fixed_bugs 字段
+    步骤：
+      1. 对每个目标目录执行 optimizer_core.run_full_pipeline()
+      2. 汇总各维度扫描结果
+      3. 更新 state.json 记录本轮扫描结果
 
     Args:
-        scan_target: 要扫描的项目目录路径
+        scan_targets: 要优化的目标目录列表（支持多项目同时优化）
         timestamp: 当前轮次时间戳
+        dimensions: 要优化的维度列表，默认全部9个
+        dry_run: True=只扫描不修改（预览模式）
 
     Returns:
         dict: {
-            "scanned": str,      # 扫描目录
-            "total_issues": int, # 发现总数
-            "fixed": int,        # 成功修复数
-            "failed": int,        # 修复失败数
-            "skipped": int,      # 跳过数
-            "score_before": int, # 修复前评分
-            "score_after": int,  # 修复后评分
+            "targets": [str, ...],    # 扫描的目标目录
+            "total_findings": int,    # 总发现数
+            "total_fixes_applied": int, # 总修复数
+            "total_verifications_passed": int,
+            "total_verifications_failed": int,
+            "score_delta": int,       # 评分变化
+            "by_target": [dict, ...], # 每个目标的详细结果
+            "at": str,
         }
     """
-    # 延迟导入，避免循环依赖
-    from src.analysis.code_review import review_project, check_python_file
-    from src.analysis.bug_analysis_engine import analyze_bug, execute_bug_fix
+    if dimensions is None:
+        dimensions = OPT_DIMENSIONS
 
-    result = {
-        "scanned": str(scan_target),
-        "total_issues": 0,
-        "fixed": 0,
-        "failed": 0,
-        "skipped": 0,
-        "score_before": 0,
-        "score_after": 0,
-        "fixes": [],
-        "issues": [],
-        "analyzed_at": timestamp,
+    from src.analysis.optimizer_core import run_full_pipeline, DIMENSION_NAMES
+
+    overall = {
+        "targets": [],
+        "total_findings": 0,
+        "total_fixes_applied": 0,
+        "total_verifications_passed": 0,
+        "total_verifications_failed": 0,
+        "score_delta": 0,
+        "by_target": [],
+        "at": timestamp,
     }
 
-    # ── 步骤1：代码审查扫描 ──
-    try:
-        review_result = review_project(str(scan_target))
-    except Exception as e:
-        relog("⚠️", "代码审查扫描失败: %s", e)
-        return result
-
-    total_issues = review_result.get("total_issues", 0)
-    score_before = review_result.get("overall_score", 0)
-    result["total_issues"] = total_issues
-    result["score_before"] = score_before
-
-    relog("🔍", "代码审查: %d 个问题, 评分 %d/100", total_issues, score_before)
-
-    if total_issues == 0:
-        result["score_after"] = score_before
-        return result
-
-    # ── 步骤2：收集所有 issue ──
-    all_issues = []
-    for file_report in review_result.get("file_reports", []):
-        for issue in (
-            file_report.get("security_issues", [])
-            + file_report.get("performance_issues", [])
-            + file_report.get("quality_issues", [])
-        ):
-            issue["file"] = file_report.get("file", issue.get("file", ""))
-            all_issues.append(issue)
-
-    # 按严重级别排序，优先处理 critical
-    SEV_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-    all_issues.sort(key=lambda x: SEV_ORDER.get(x.get("severity", "low"), 99))
-
-    # ── 步骤3：分析 + 修复循环 ──
-    fix_count = 0
-    for issue in all_issues:
-        severity = issue.get("severity", "medium")
-        issue_type = issue.get("type", "unknown")
-
-        # 跳过非目标严重级别
-        if severity not in AUTO_ANALYZE_SEVERITIES:
-            result["skipped"] += 1
+    for target in scan_targets:
+        if not target or not target.exists():
+            relog("ℹ️", "跳过不存在目录: %s", target)
             continue
 
-        # 跳过无文件路径的问题
-        if not issue.get("file") or not issue.get("line", 0):
-            result["skipped"] += 1
-            continue
+        target_str = str(target)
+        relog("🔍", "优化目标: %s（维度: %s）", target_str, ", ".join(dimensions))
+        overall["targets"].append(target_str)
 
-        # 每轮自动修复上限
-        if fix_count >= MAX_AUTO_FIXES_PER_ROUND:
-            result["skipped"] += 1
-            continue
-
-        # 转换为 traceback 格式
-        traceback_text = _issue_to_traceback(issue)
-
-        # 调用分析引擎
+        # ── 步骤1：执行 9 维度扫描 ──
         try:
-            bug_analysis = analyze_bug(traceback_text, source_type="python")
+            pipeline_result = run_full_pipeline(target_str, dimensions=dimensions)
         except Exception as e:
-            relog("⚠️", "分析失败 [%s:%d] %s: %s",
-                  issue.get("file", ""), issue.get("line", 0), issue_type, e)
+            relog("⚠️", "optimizer_core 执行失败 [%s]: %s", target_str, e)
+            overall["by_target"].append({
+                "target": target_str,
+                "error": str(e),
+            })
             continue
 
-        confidence = bug_analysis.get("confidence", 0)
-        is_fix_candidate = issue.get("type") in AUTO_FIX_ISSUE_TYPES
+        # ── 汇总结果 ──
+        total_issues = pipeline_result.get("total_issues", 0)
+        overall["total_findings"] += total_issues
 
-        fix_record = {
-            "issue_type": issue_type,
-            "severity": severity,
-            "file": issue.get("file", ""),
-            "line": issue.get("line", 0),
-            "confidence": confidence,
-            "fix_candidate": is_fix_candidate,
-            "fix_success": None,
-            "verification": "",
-        }
+        # 按维度统计
+        by_dimension = {}
+        for dim_name, dim_result in pipeline_result.get("dimensions", {}).items():
+            dim_label = DIMENSION_NAMES.get(dim_name, dim_name)
+            by_dimension[dim_name] = {
+                "label": dim_label,
+                "score": dim_result.get("score", 0),
+                "issues": dim_result.get("issue_count", 0),
+                "scan_time_ms": dim_result.get("scan_time_ms", 0),
+            }
 
-        # 自动修复条件：fix_candidate + 高置信度
-        if is_fix_candidate and confidence >= AUTO_FIX_CONFIDENCE_THRESHOLD:
-            bug_dict = _issue_to_bug_dict(issue, traceback_text, bug_analysis)
-            try:
-                fix_result = execute_bug_fix(bug_dict, str(scan_target))
-                fix_record["fix_success"] = fix_result.get("success", False)
-                fix_record["verification"] = fix_result.get("verification", "")
-
-                if fix_result.get("success"):
-                    fix_count += 1
-                    result["fixed"] += 1
-                    relog("✅", "自动修复 [%s:%d] %s — %s",
-                          issue.get("file", ""), issue.get("line", 0),
-                          issue_type, fix_result.get("verification", ""))
-                    # 记录修复到 state.json
-                    state = load_state()
-                    state.setdefault("fixed_bugs", []).append({
-                        "issue_type": issue_type,
-                        "file": issue.get("file", ""),
-                        "line": issue.get("line", 0),
-                        "confidence": confidence,
-                        "fixed_at": timestamp,
-                    })
-                    save_state(state)
-                else:
-                    result["failed"] += 1
-                    relog("⚠️", "自动修复失败 [%s:%d] %s — %s",
-                          issue.get("file", ""), issue.get("line", 0),
-                          issue_type, fix_result.get("details", ""))
-
-                    # 记录失败模式
-                    state = load_state()
-                    state.setdefault("error_patterns", []).append({
-                        "type": issue_type,
-                        "file": issue.get("file", ""),
-                        "line": issue.get("line", 0),
-                        "reason": fix_result.get("details", ""),
-                        "at": timestamp,
-                    })
-                    save_state(state)
-            except Exception as e:
-                fix_record["fix_success"] = False
-                fix_record["verification"] = str(e)
-                result["failed"] += 1
-                relog("❌", "修复异常 [%s:%d] %s: %s",
-                      issue.get("file", ""), issue.get("line", 0), issue_type, e)
-        else:
-            result["skipped"] += 1
-            if confidence < AUTO_FIX_CONFIDENCE_THRESHOLD:
-                relog("ℹ️", "跳过（置信度 %.0f%% < %d%%）%s:%d %s",
-                      confidence * 100, int(AUTO_FIX_CONFIDENCE_THRESHOLD * 100),
-                      issue.get("file", ""), issue.get("line", 0), issue_type)
-            elif not is_fix_candidate:
-                relog("ℹ️", "跳过（非自动修复类型）%s:%d %s",
-                      issue.get("file", ""), issue.get("line", 0), issue_type)
-
-        result["fixes"].append(fix_record)
-        result["issues"].append({
-            "type": issue_type,
-            "severity": severity,
-            "file": issue.get("file", ""),
-            "line": issue.get("line", 0),
-            "confidence": confidence,
+        overall["by_target"].append({
+            "target": target_str,
+            "project_name": pipeline_result.get("project_name", target.name),
+            "language": pipeline_result.get("language", "unknown"),
+            "overall_score": pipeline_result.get("overall_score", 0),
+            "total_issues": total_issues,
+            "critical_issues": pipeline_result.get("critical_issues", 0),
+            "scan_time_ms": pipeline_result.get("total_scan_time_ms", 0),
+            "by_dimension": by_dimension,
+            "summary": pipeline_result.get("summary", ""),
         })
 
-    # ── 步骤4：修复后重新评分 ──
-    if fix_count > 0:
-        try:
-            review_after = review_project(str(scan_target))
-            score_after = review_after.get("overall_score", 0)
-            result["score_after"] = score_after
-            relog("📈", "评分变化: %d → %d（%s %d 个问题）",
-                  score_before, score_after,
-                  "修复" if score_after > score_before else "无改善",
-                  fix_count)
-        except Exception:
-            result["score_after"] = score_before
-    else:
-        result["score_after"] = score_before
-
-    relog("📊", "Bug 管道完成: 发现 %d | 修复 %d | 失败 %d | 跳过 %d",
-          total_issues, result["fixed"], result["failed"], result["skipped"])
+        relog(
+            "📊 [%s] 整体 %d/100 | 发现 %d（critical: %d）| 耗时 %.0fms",
+            pipeline_result.get("project_name", target.name),
+            pipeline_result.get("overall_score", 0),
+            total_issues,
+            pipeline_result.get("critical_issues", 0),
+            pipeline_result.get("total_scan_time_ms", 0),
+        )
 
     # ── 步骤5：写入 state.json ──
     state = load_state()
-    state["last_bug_pipeline"] = {
-        "scanned": str(scan_target),
-        "total_issues": total_issues,
-        "fixed": result["fixed"],
-        "failed": result["failed"],
-        "skipped": result["skipped"],
-        "score_before": score_before,
-        "score_after": result["score_after"],
-        "fix_count_this_round": fix_count,
+    state["last_optimization"] = {
+        "targets": overall["targets"],
+        "dimensions": dimensions,
+        "total_findings": overall["total_findings"],
+        "total_fixes_applied": overall["total_fixes_applied"],
+        "total_verifications_passed": overall["total_verifications_passed"],
+        "total_verifications_failed": overall["total_verifications_failed"],
+        "score_delta": overall["score_delta"],
+        "dry_run": dry_run,
         "at": timestamp,
     }
     save_state(state)
 
-    return result
+    relog(
+        "🏁 优化完成：%d 个目标，发现 %d，修复 %d，验证 %d/%d",
+        len(overall["targets"]),
+        overall["total_findings"],
+        overall["total_fixes_applied"],
+        overall["total_verifications_passed"],
+        overall["total_verifications_passed"] + overall["total_verifications_failed"],
+    )
+
+    return overall
+    # 延迟导入，避免循环依赖
+    from src.analysis.optimizer_core import run_full_pipeline, DIMENSION_NAMES
+
+    try:
+        pipeline_result = run_full_pipeline(str(scan_target), dimensions=dimensions)
+        relog("🔍", "9 维度扫描完成: %s", pipeline_result.get("summary", "").split("\n")[0])
+        return pipeline_result
+    except Exception as e:
+        relog("⚠️", "optimizer_core 执行失败 [%s]: %s", scan_target, e)
+        return {
+            "dimension": "all",
+            "score": 0,
+            "issues": [],
+            "issue_count": 0,
+            "summary": f"优化引擎执行失败: {e}",
+            "error": str(e),
+        }
 
 # ─── 磁盘阈值 ──────────────────────────────────────────────────────────
 MIN_FREE_GB = 5
@@ -1283,20 +1205,45 @@ def main():
         except subprocess.TimeoutExpired:
             relog("❌", "git status 超时（10s），跳过项目三同步")
 
-        # ── 4b. 🔬 Bug 扫描 → 分析 → 修复 → 验证 完整管道 ──
-        # 成本检查：黄色/红色模式时跳过自动修复（只做扫描）
+        # ── 4b. 🚀 持续优化引擎（九维全覆盖）────────────────────────────
+        # 成本检查：黄色/红色模式时降级为 dry_run（只扫描不修改）
         cost_tier = cost_warning or ""
-        if cost_tier and "跳过" in str(cost_tier):
-            relog("ℹ️", "成本模式 '%s'，Bug 管道降级为只扫描（不自动修复）", cost_tier)
+        is_dry_run = bool(cost_tier and "跳过" in str(cost_tier))
+        if is_dry_run:
+            relog("ℹ️", "成本模式 '%s'，优化引擎降级为 dry_run（仅扫描）", cost_tier)
 
-        scan_target = PROJECT1_DIR if PROJECT1_DIR else SWARM_DIR
-        if scan_target and (SWARM_DIR / "code_review.py").exists():
+        # 收集所有优化目标（支持多项目同时优化）
+        optimization_targets: list[Path] = []
+        if PROJECT1_DIR and PROJECT1_DIR.exists():
+            optimization_targets.append(PROJECT1_DIR)
+        # 从 config.yaml 读取额外优化目标
+        cfg = _get_config()
+        opt_targets = cfg.get("optimization_targets", [])
+        for t in opt_targets:
+            p = Path(str(t).strip('"\''))
+            if p.exists() and p not in optimization_targets:
+                optimization_targets.append(p)
+        # 默认扫描项目三自身
+        if not optimization_targets:
+            optimization_targets.append(SWARM_DIR)
+
+        if optimization_targets:
+            # 从 config 读取优化维度子集（空列表=全部9个）
+            opt_dims = cfg.get("optimization_dimensions", None)
             try:
-                pipeline_result = run_bug_pipeline(scan_target, timestamp)
+                opt_result = run_optimization_pipeline(
+                    scan_targets=optimization_targets,
+                    timestamp=timestamp,
+                    dimensions=opt_dims if opt_dims else OPT_DIMENSIONS,
+                    dry_run=is_dry_run,
+                )
+                relog("🏁", "优化完成：%d 个目标，发现 %d 问题",
+                      len(opt_result.get("targets", [])),
+                      opt_result.get("total_findings", 0))
             except Exception as e:
-                relog("⚠️", "Bug 管道执行异常: %s", e)
+                relog("⚠️", "优化引擎异常: %s", e)
         else:
-            relog("ℹ️", "Bug 管道跳过（目标目录未配置或 code_review.py 不可用）")
+            relog("ℹ️", "优化引擎跳过（无有效优化目标）")
 
         # ── 4c. 失败模式学习 ──
         if not (cost_tier and "跳过" in str(cost_tier)):

@@ -1,10 +1,10 @@
 {
   "current_round": 46,
-  "step": "completed",
+  "step": "done",
   "project_one_step": "done",
   "project_three_step": "completed",
   "started_at": "2026-05-19 15:55:00",
-  "completed_at": "2026-05-19T20:28:50.614999",
+  "completed_at": "2026-05-20 10:54:23",
   "readonly_mode": false,
   "cronjob_resume_ready": true,
   "last_error": null,
@@ -81,25 +81,10 @@
     "tier_reason": "当日花费 $2.85，黄色模式（跳过 feature/refactor，infrastructure/debug 不受限）"
   },
   "failure_stats": {
-    "last_analysis": "2026-05-18T20:43:00",
-    "weekly_patterns": {
-      "test_creation": {
-        "failed": 3,
-        "total": 3,
-        "rate": 1.0
-      },
-      "signature_conversion": {
-        "failed": 1,
-        "total": 1,
-        "rate": 1.0
-      },
-      "api_misuse": {
-        "failed": 1,
-        "total": 1,
-        "rate": 1.0
-      }
-    },
-    "failure_injection_text": "⚠️ 历史经验：避免委托子Agent创建从零的测试文件或执行框架类任务。优先协调者直接write_file。避免涉及中文路径的cd操作。"
+    "last_analysis": "2026-05-20 10:54:23",
+    "weekly_patterns": {},
+    "failure_injection_text": "",
+    "total_completed": 36
   },
   "estimated_duration_seconds": {
     "debug": 180,
@@ -132,24 +117,6 @@
   },
   "micro_plan": {
     "tasks": {
-      "self_container_pool_retry_logic": {
-        "description": "增强容器池启动稳定性——失败重试(3次指数退避)+告警写入日志",
-        "micro_tasks": [
-          {
-            "id": "micro-001",
-            "task_type": "replace_string",
-            "params": {
-              "file": "start_sandbox_pool.sh",
-              "old_string": "# sandbox_pool.sh — 预热 Docker 容器池\n# 用途：启动常驻 sandbox 容器，避免每次 docker run 开销\n# 用法：./start_sandbox_pool.sh [start|stop|restart|status]\n# 协调者：在首次 cronjob 运行前手动执行一次 start 即可",
-              "new_string": "# sandbox_pool.sh — 预热 Docker 容器池\n# 用途：启动常驻 sandbox 容器，避免每次 docker run 开销\n# 用法：./start_sandbox_pool.sh [start|stop|restart|status]\n# 协调者：在首次 cronjob 运行前手动执行一次 start 即可\n# 自优化：已集成 _retry_docker_run（3次指数退避重试）+ _log_error（告警日志）"
-            },
-            "expected_outcome": "start_sandbox_pool.sh 新增自优化注释",
-            "depends_on": [],
-            "verify_command": "grep -c '自优化：已集成 _retry_docker_run' start_sandbox_pool.sh && echo 'PASS' || echo 'FAIL'"
-          }
-        ],
-        "total_micro": 1
-      },
       "self_cost_tracker_persistence": {
         "description": "将成本跟踪改为 SQLite 持久化存储，支持跨日累计和成本趋势查询",
         "micro_tasks": [
@@ -161,7 +128,7 @@
             },
             "expected_outcome": "手动处理标志",
             "_note": "task_id=self_cost_tracker_persistence 无预设模板也无明显可拆分模式，需人工分解",
-            "id": "micro-002",
+            "id": "micro-001",
             "depends_on": [],
             "verify_command": "echo '手动验证'"
           }
@@ -181,7 +148,7 @@
               "comment": "# self_json_logs_startup_flag: 待协调者填写具体配置"
             },
             "expected_outcome": "config.yaml 新增占位配置项",
-            "id": "micro-003",
+            "id": "micro-002",
             "depends_on": [],
             "verify_command": "echo '手动验证'"
           }
@@ -199,7 +166,7 @@
             },
             "expected_outcome": "手动处理标志",
             "_note": "task_id=self_metrics_sqlite_storage 无预设模板也无明显可拆分模式，需人工分解",
-            "id": "micro-004",
+            "id": "micro-003",
             "depends_on": [],
             "verify_command": "echo '手动验证'"
           }
@@ -226,7 +193,7 @@
     "delegate": [],
     "max_concurrent": 3,
     "has_work": true,
-    "planned_at": "2026-05-20T08:32:07",
+    "planned_at": "2026-05-20T10:54:29",
     "total_pending": 3
   }
 }

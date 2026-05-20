@@ -23,7 +23,6 @@
 import ast
 import re
 from pathlib import Path
-from typing import Optional
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1582,3 +1581,4 @@ API_KEY = "sk-1234567890abcdef1234567890abcdef"
     for i in result["security_issues"]:
         print(f"  [{i['severity']}] L{i['line']} {i['type']}: {i['description'][:50]}")
     print(f"\n{result['comments'][:500]}")
+
