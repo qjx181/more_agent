@@ -1,0 +1,147 @@
+{
+  "agents": {
+    "agent-coder": {
+      "task_type_description": "已有文件的增量修改（函数替换、常量更新、文档修改）",
+      "success_rate": 0.82,
+      "avg_tokens_used": 2000,
+      "failure_pattern": "signature_drift, zero_file_output",
+      "total_tasks_assigned": 11,
+      "successful_tasks": 9,
+      "last_assigned": "2026-05-19T20:28:50.622463",
+      "notes": "从零创建新文件时 100% 失败，仅增量修改可靠| self_asyncify_knowledge_store: NO-OP (file not found)",
+      "task_types_performance": {
+        "replace_string": {
+          "attempts": 5,
+          "successes": 5
+        },
+        "run_command": {
+          "attempts": 3,
+          "successes": 3
+        }
+      }
+    },
+    "agent-reviewer": {
+      "task_type_description": "代码审查、diff 检查、测试覆盖率审计",
+      "success_rate": 0.0,
+      "avg_tokens_used": 0,
+      "failure_pattern": "never_assigned, weak_model_inadequate_for_complex_review",
+      "total_tasks_assigned": 0,
+      "successful_tasks": 0,
+      "last_assigned": null,
+      "notes": "qwen2.5:7b 不足以理解复杂审查任务，需要更强模型"
+    },
+    "agent-tester": {
+      "task_type_description": "测试用例创建、mock 模板填充",
+      "success_rate": 0.0,
+      "avg_tokens_used": 0,
+      "failure_pattern": "test_creation_100pct_failure_from_scratch",
+      "total_tasks_assigned": 0,
+      "successful_tasks": 0,
+      "last_assigned": null,
+      "notes": "从零创建测试文件 100% 失败，仅做增量补充可尝试"
+    },
+    "agent-burst-1": {
+      "task_type_description": "弹性——未分配固定角色",
+      "success_rate": 0.0,
+      "avg_tokens_used": 0,
+      "failure_pattern": "",
+      "total_tasks_assigned": 0,
+      "successful_tasks": 0,
+      "last_assigned": null,
+      "notes": ""
+    },
+    "agent-burst-2": {
+      "task_type_description": "弹性——未分配固定角色",
+      "success_rate": 0.0,
+      "avg_tokens_used": 0,
+      "failure_pattern": "",
+      "total_tasks_assigned": 0,
+      "successful_tasks": 0,
+      "last_assigned": null,
+      "notes": ""
+    },
+    "agent-burst-3": {
+      "task_type_description": "弹性——未分配固定角色",
+      "success_rate": 0.0,
+      "avg_tokens_used": 0,
+      "failure_pattern": "",
+      "total_tasks_assigned": 0,
+      "successful_tasks": 0,
+      "last_assigned": null,
+      "notes": ""
+    }
+  },
+  "coordination_rules": {
+    "success_rate_high_threshold": 0.5,
+    "success_rate_low_threshold": 0.3,
+    "delegate_preference_by_rate": {
+      "above_high": "prefer_delegation_for_all",
+      "between": "only_delegate_incremental_modifications",
+      "below_low": "only_delegate_simple_config_changes"
+    },
+    "exploration_policy": {
+      "untested_agents": "assign_low_risk_tasks_first",
+      "consistent_failures_3plus": "permanently_block_from_that_task_type"
+    },
+    "last_updated": "2026-05-19T19:52:50.684402"
+  },
+  "agent_selection_history": [
+    {
+      "timestamp": "2026-05-19T17:30:00",
+      "task_id": "delegation_validation_loop",
+      "agent_id": "agent-coder",
+      "micro_count": 2,
+      "passed": 2,
+      "failed": 0,
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-05-19T18:03:43",
+      "task_id": "metrics_sqlite_storage",
+      "agent_id": "agent-coder",
+      "micro_count": 3,
+      "passed": 3,
+      "failed": 0,
+      "all_passed": true
+    },
+    {
+      "timestamp": "2026-05-19T18:38:26",
+      "task_id": "self_asyncify_knowledge_store",
+      "agent_id": "agent-coder",
+      "micro_count": 1,
+      "passed": 1,
+      "failed": 0,
+      "all_passed": true,
+      "note": "NO-OP: file services/knowledge_store.py does not exist in swarm project"
+    },
+    {
+      "timestamp": "2026-05-19T19:17:35.485856",
+      "task_id": "self_asyncify_session_service",
+      "agent_id": "agent-coder",
+      "micro_count": 1,
+      "passed": 1,
+      "failed": 0,
+      "all_passed": true,
+      "note": "NO-OP: services/session_service.py does not exist in swarm project - coordinator needs to create file first"
+    },
+    {
+      "timestamp": "2026-05-19T19:52:50.684402",
+      "task_id": "self_cleanup_deprecated_files",
+      "agent_id": "agent-coder",
+      "micro_count": 1,
+      "passed": 1,
+      "failed": 0,
+      "all_passed": true,
+      "note": "清理14个废弃文件，无import引用需更新"
+    },
+    {
+      "timestamp": "2026-05-19T20:28:50.622484",
+      "task_id": "self_container_pool_retry_logic",
+      "agent_id": "agent-coder",
+      "micro_count": 1,
+      "passed": 1,
+      "failed": 0,
+      "all_passed": true
+    }
+  ]
+}

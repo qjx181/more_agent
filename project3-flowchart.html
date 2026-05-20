@@ -1,417 +1,616 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>项目三 — 自主优化管道架构</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'JetBrains Mono', monospace;
-      background: #020617;
-      min-height: 100vh;
-      padding: 2rem;
-      color: white;
-    }
-    .container { max-width: 1200px; margin: 0 auto; }
-    .header { margin-bottom: 2rem; }
-    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
-    .pulse-dot {
-      width: 12px; height: 12px; background: #22d3ee;
-      border-radius: 50%; animation: pulse 2s infinite;
-    }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
-    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
-    .diagram-container {
-      background: rgba(15, 23, 42, 0.5); border-radius: 1rem;
-      border: 1px solid #1e293b; padding: 1.5rem; overflow-x: auto;
-    }
-    svg { width: 100%; min-width: 1000px; display: block; }
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1rem; margin-top: 2rem;
-    }
-    .card {
-      background: rgba(15, 23, 42, 0.5); border-radius: 0.75rem;
-      border: 1px solid #1e293b; padding: 1.25rem;
-    }
-    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
-    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .card-dot.cyan { background: #22d3ee; }
-    .card-dot.emerald { background: #34d399; }
-    .card-dot.violet { background: #a78bfa; }
-    .card-dot.amber { background: #fbbf24; }
-    .card-dot.rose { background: #fb7185; }
-    .card-dot.orange { background: #fb923c; }
-    .card h3 { font-size: 0.875rem; font-weight: 600; }
-    .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
-    .card li { margin-bottom: 0.375rem; }
-    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>项目三：多Agent — 系统流程图</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0d1117;
+  color: #c9d1d9;
+  padding: 30px;
+  font-size: 14px;
+}
+h1 { color: #f0f6fc; margin-bottom: 8px; font-size: 22px; }
+.subtitle { color: #8b949e; margin-bottom: 30px; font-size: 13px; }
+h2 {
+  font-size: 15px;
+  color: #f0f6fc;
+  border-left: 3px solid #58a6ff;
+  padding-left: 10px;
+  margin: 24px 0 12px 0;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.legend-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid #30363d;
+}
+.flow-container {
+  overflow-x: auto;
+  padding-bottom: 20px;
+}
+svg { display: block; }
+</style>
 </head>
 <body>
-  <div class="container">
-    <!-- Header -->
-    <div class="header">
-      <div class="header-row">
-        <div class="pulse-dot"></div>
-        <h1>项目三 · 自主优化管道</h1>
-      </div>
-      <p class="subtitle">A→B→Git 循环 · 30分钟/轮 · 目标：持续改进项目一（RAG系统）</p>
-    </div>
-
-    <!-- Main Diagram -->
-    <div class="diagram-container">
-      <svg viewBox="0 0 1080 980">
-        <defs>
-          <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
-          </marker>
-          <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/>
-          </marker>
-          <marker id="arrow-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/>
-          </marker>
-          <marker id="arrow-violet" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/>
-          </marker>
-          <marker id="arrow-rose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/>
-          </marker>
-          <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="#fb923c"/>
-          </marker>
-          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
-          </pattern>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="2" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)"/>
-
-        <!-- ═══════ LEGEND ═══════ -->
-        <text x="840" y="30" fill="white" font-size="11" font-weight="600">图例</text>
-        <rect x="840" y="38" width="14" height="10" rx="2" fill="rgba(6,78,59,0.5)" stroke="#34d399" stroke-width="1"/><text x="860" y="46" fill="#94a3b8" font-size="8">协调者/Agent</text>
-        <rect x="840" y="54" width="14" height="10" rx="2" fill="rgba(8,51,68,0.5)" stroke="#22d3ee" stroke-width="1"/><text x="860" y="62" fill="#94a3b8" font-size="8">调度/基础设施</text>
-        <rect x="840" y="70" width="14" height="10" rx="2" fill="rgba(76,29,149,0.5)" stroke="#a78bfa" stroke-width="1"/><text x="860" y="78" fill="#94a3b8" font-size="8">存储/状态</text>
-        <rect x="840" y="86" width="14" height="10" rx="2" fill="rgba(136,19,55,0.5)" stroke="#fb7185" stroke-width="1"/><text x="860" y="94" fill="#94a3b8" font-size="8">安全护栏/门禁</text>
-        <rect x="840" y="102" width="14" height="10" rx="2" fill="rgba(251,146,60,0.4)" stroke="#fb923c" stroke-width="1"/><text x="860" y="110" fill="#94a3b8" font-size="8">后勤/监控</text>
-        <rect x="840" y="118" width="14" height="10" rx="2" fill="rgba(120,53,15,0.4)" stroke="#fbbf24" stroke-width="1"/><text x="860" y="126" fill="#94a3b8" font-size="8">目标项目</text>
-
-        <!-- ═══════ SECTION 1: CRON SCHEDULER ═══════ -->
-        <rect x="40" y="50" width="780" height="70" rx="8" fill="rgba(8,51,68,0.25)" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
-        <text x="50" y="66" fill="#64748b" font-size="9" font-weight="600">🚀 触发层</text>
-
-        <!-- Gateway -->
-        <rect x="60" y="76" width="130" height="34" rx="6" fill="rgba(8,51,68,0.5)" stroke="#22d3ee" stroke-width="1.5"/>
-        <text x="125" y="89" fill="white" font-size="9" font-weight="600" text-anchor="middle">Hermes Gateway</text>
-        <text x="125" y="102" fill="#94a3b8" font-size="8" text-anchor="middle">PID 1331 · 常驻</text>
-
-        <!-- tmux -->
-        <rect x="210" y="76" width="120" height="34" rx="6" fill="rgba(8,51,68,0.5)" stroke="#22d3ee" stroke-width="1.5"/>
-        <text x="270" y="89" fill="white" font-size="9" font-weight="600" text-anchor="middle">tmux hermes-swarm</text>
-        <text x="270" y="102" fill="#94a3b8" font-size="8" text-anchor="middle">会话守护</text>
-
-        <!-- Cronjob -->
-        <rect x="350" y="76" width="130" height="34" rx="6" fill="rgba(8,51,68,0.5)" stroke="#22d3ee" stroke-width="1.5"/>
-        <text x="415" y="89" fill="white" font-size="9" font-weight="600" text-anchor="middle">cronjob every 30m</text>
-        <text x="415" y="102" fill="#94a3b8" font-size="8" text-anchor="middle">swarm-evolve-round</text>
-
-        <!-- arrow from cronjob to coordinator -->
-        <line x1="480" y1="93" x2="530" y2="93" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
-
-        <!-- skills loaded -->
-        <rect x="540" y="76" width="200" height="34" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1"/>
-        <text x="640" y="88" fill="#94a3b8" font-size="8" text-anchor="middle">加载 Skill</text>
-        <text x="640" y="100" fill="#94a3b8" font-size="8" text-anchor="middle">orchestrate-swarm + dev-cell + qa-cell</text>
-
-        <!-- self-evolve backup -->
-        <rect x="60" y="116" width="260" height="0" rx="4" fill="none" stroke="none"/>
-
-        <line x1="480" y1="93" x2="530" y2="93" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
-
-        <!-- ═══════ SECTION 2: COORDINATOR ═══════ -->
-        <rect x="40" y="140" width="780" height="82" rx="8" fill="rgba(6,78,59,0.15)" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
-        <text x="50" y="156" fill="#64748b" font-size="9" font-weight="600">🧠 阶段 0-1：协调者预处理</text>
-
-        <!-- Coordinator -->
-        <rect x="60" y="162" width="140" height="50" rx="6" fill="rgba(6,78,59,0.5)" stroke="#34d399" stroke-width="1.5"/>
-        <text x="130" y="182" fill="white" font-size="10" font-weight="600" text-anchor="middle">协调者</text>
-        <text x="130" y="197" fill="#94a3b8" font-size="8" text-anchor="middle">DeepSeek v4</text>
-
-        <!-- Step 1: Read state -->
-        <rect x="230" y="162" width="110" height="50" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
-        <text x="285" y="180" fill="white" font-size="9" font-weight="600" text-anchor="middle">Step 1: 读状态</text>
-        <text x="285" y="195" fill="#94a3b8" font-size="8" text-anchor="middle">TODO + state + CHANGELOG</text>
-
-        <line x1="200" y1="187" x2="228" y2="187" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
-
-        <!-- Step 1b: Dependency graph -->
-        <rect x="370" y="162" width="130" height="50" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
-        <text x="435" y="178" fill="white" font-size="9" font-weight="600" text-anchor="middle">Step 1b: 依赖解析</text>
-        <text x="435" y="192" fill="#94a3b8" font-size="8" text-anchor="middle">completed_task_ids 检查</text>
-        <text x="435" y="204" fill="#fb7185" font-size="7" text-anchor="middle">未满足依赖 → 跳过</text>
-
-        <line x1="340" y1="187" x2="368" y2="187" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
-
-        <!-- Step 0: Preprocessing -->
-        <rect x="530" y="162" width="140" height="50" rx="6" fill="rgba(251,146,60,0.4)" stroke="#fb923c" stroke-width="1.5"/>
-        <text x="600" y="178" fill="white" font-size="9" font-weight="600" text-anchor="middle">Step 0: 预处理</text>
-        <text x="600" y="192" fill="#94a3b8" font-size="8" text-anchor="middle">LLM 分解粗略需求</text>
-        <text x="600" y="204" fill="#94a3b8" font-size="7" text-anchor="middle">缓存命中 → 跳过</text>
-
-        <line x1="500" y1="187" x2="528" y2="187" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
-
-        <!-- arrow to A-team -->
-        <line x1="670" y1="187" x2="730" y2="222" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
-
-        <!-- ═══════ SECTION 3: A-TEAM (dev-cell) ═══════ -->
-        <rect x="40" y="240" width="780" height="130" rx="8" fill="rgba(6,78,59,0.15)" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
-        <text x="50" y="256" fill="#64748b" font-size="9" font-weight="600">🛠️ 阶段 2：A 队开发 & 双门禁</text>
-
-        <!-- A-Team box -->
-        <rect x="60" y="268" width="130" height="90" rx="6" fill="rgba(6,78,59,0.5)" stroke="#34d399" stroke-width="1.5"/>
-        <text x="125" y="288" fill="white" font-size="10" font-weight="600" text-anchor="middle">A 队 · dev-cell</text>
-        <text x="125" y="303" fill="#94a3b8" font-size="8" text-anchor="middle">编写代码</text>
-        <text x="125" y="316" fill="#94a3b8" font-size="8" text-anchor="middle">修改现有文件</text>
-        <text x="125" y="329" fill="#94a3b8" font-size="8" text-anchor="middle">创建 SKILL</text>
-        <text x="125" y="344" fill="#94a3b8" font-size="7" text-anchor="middle">最多 3 并发</text>
-
-        <!-- --><line x1="190" y1="313" x2="218" y2="313" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
-
-        <!-- compile gate -->
-        <rect x="220" y="268" width="140" height="90" rx="6" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1.5"/>
-        <text x="290" y="286" fill="white" font-size="9" font-weight="600" text-anchor="middle">🧪 编译门禁</text>
-        <text x="290" y="301" fill="#94a3b8" font-size="8" text-anchor="middle">py_compile.compile()</text>
-        <text x="290" y="315" fill="#94a3b8" font-size="8" text-anchor="middle">ast.parse 兜底</text>
-        <text x="290" y="330" fill="#94a3b8" font-size="8" text-anchor="middle">最多重试 3 次</text>
-        <text x="290" y="345" fill="#fb7185" font-size="7" text-anchor="middle">FAILED_3_TIMES → 驳回</text>
-
-        <!-- --><line x1="360" y1="313" x2="388" y2="313" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrow-rose)"/>
-
-        <!-- sandbox gate -->
-        <rect x="390" y="268" width="140" height="90" rx="6" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1.5"/>
-        <text x="460" y="286" fill="white" font-size="9" font-weight="600" text-anchor="middle">🪟 沙箱门禁</text>
-        <text x="460" y="301" fill="#94a3b8" font-size="8" text-anchor="middle">Docker --read-only</text>
-        <text x="460" y="315" fill="#94a3b8" font-size="8" text-anchor="middle">--cpus 0.5 · --memory 128m</text>
-        <text x="460" y="330" fill="#94a3b8" font-size="8" text-anchor="middle">RLIMITS 兜底</text>
-        <text x="460" y="345" fill="#fb7185" font-size="7" text-anchor="middle">TIMEOUT/OOM → 驳回</text>
-
-        <!-- --><line x1="530" y1="313" x2="558" y2="313" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrow-rose)"/>
-
-        <!-- cost estimate -->
-        <rect x="560" y="268" width="140" height="90" rx="6" fill="rgba(251,146,60,0.4)" stroke="#fb923c" stroke-width="1.5"/>
-        <text x="630" y="286" fill="white" font-size="9" font-weight="600" text-anchor="middle">💰 成本估算</text>
-        <text x="630" y="301" fill="#94a3b8" font-size="8" text-anchor="middle">output_tokens_approx</text>
-        <text x="630" y="315" fill="#94a3b8" font-size="8" text-anchor="middle">字符数 / 4 ≈ token 数</text>
-        <text x="630" y="330" fill="#94a3b8" font-size="8" text-anchor="middle">→ report.json</text>
-        <text x="630" y="345" fill="#64748b" font-size="7" text-anchor="middle">协调者在下一阶段比较</text>
-
-        <!-- ═══════ SECTION 4: COORDINATOR CHECKS ═══════ -->
-        <rect x="40" y="390" width="780" height="58" rx="8" fill="rgba(6,78,59,0.15)" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
-        <text x="50" y="406" fill="#64748b" font-size="9" font-weight="600">🔍 阶段 3：协调者检查 & 熔断</text>
-
-        <!-- coordinator check -->
-        <rect x="60" y="412" width="220" height="30" rx="6" fill="rgba(6,78,59,0.5)" stroke="#34d399" stroke-width="1.5"/>
-        <text x="170" y="431" fill="white" font-size="9" font-weight="600" text-anchor="middle">检查 compile_gate / sandbox_gate</text>
-
-        <!-- cost fuse -->
-        <rect x="310" y="412" width="200" height="30" rx="6" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1.5"/>
-        <text x="410" y="431" fill="white" font-size="9" font-weight="600" text-anchor="middle">成本熔断：actual > 2× estimated</text>
-
-        <!-- decision -->
-        <rect x="540" y="412" width="180" height="30" rx="6" fill="rgba(6,78,59,0.5)" stroke="#34d399" stroke-width="1.5"/>
-        <text x="630" y="431" fill="white" font-size="9" font-weight="600" text-anchor="middle">通过 → 送 B 队</text>
-
-        <line x1="280" y1="427" x2="308" y2="427" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
-        <line x1="510" y1="427" x2="538" y2="427" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrow-rose)"/>
-        <line x1="720" y1="427" x2="760" y2="462" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
-
-        <!-- ═══════ SECTION 5: B-TEAM ═══════ -->
-        <rect x="40" y="465" width="780" height="68" rx="8" fill="rgba(6,78,59,0.15)" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
-        <text x="50" y="481" fill="#64748b" font-size="9" font-weight="600">🔬 阶段 4：B 队审查</text>
-
-        <rect x="60" y="490" width="200" height="36" rx="6" fill="rgba(6,78,59,0.5)" stroke="#34d399" stroke-width="1.5"/>
-        <text x="160" y="506" fill="white" font-size="9" font-weight="600" text-anchor="middle">B 队 · qa-cell</text>
-        <text x="160" y="519" fill="#94a3b8" font-size="8" text-anchor="middle">代码审查 + 运行测试</text>
-
-        <rect x="290" y="490" width="170" height="36" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
-        <text x="375" y="506" fill="white" font-size="9" font-weight="600" text-anchor="middle">report.json</text>
-        <text x="375" y="519" fill="#94a3b8" font-size="8" text-anchor="middle">critical / minor / pass</text>
-
-        <rect x="490" y="490" width="180" height="36" rx="6" fill="rgba(6,78,59,0.5)" stroke="#34d399" stroke-width="1.5"/>
-        <text x="580" y="506" fill="white" font-size="9" font-weight="600" text-anchor="middle">协调者决策</text>
-        <text x="580" y="519" fill="#94a3b8" font-size="8" text-anchor="middle">合并 / 修复 / 驳回</text>
-
-        <line x1="260" y1="508" x2="288" y2="508" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
-        <line x1="460" y1="508" x2="488" y2="508" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
-
-        <line x1="670" y1="508" x2="720" y2="550" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
-
-        <!-- ═══════ SECTION 6: GIT LAYER ═══════ -->
-        <rect x="40" y="555" width="780" height="90" rx="8" fill="rgba(6,78,59,0.15)" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
-        <text x="50" y="571" fill="#64748b" font-size="9" font-weight="600">📝 阶段 5-7：Git 提交 & 后处理</text>
-
-        <rect x="60" y="580" width="120" height="36" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
-        <text x="120" y="596" fill="white" font-size="9" font-weight="600" text-anchor="middle">Step 6: Git</text>
-        <text x="120" y="609" fill="#94a3b8" font-size="8" text-anchor="middle">pull→add→commit→push</text>
-
-        <rect x="210" y="580" width="130" height="36" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
-        <text x="275" y="596" fill="white" font-size="9" font-weight="600" text-anchor="middle">Step 7: TODO 更新</text>
-        <text x="275" y="609" fill="#94a3b8" font-size="8" text-anchor="middle">[ ] → [x]</text>
-
-        <rect x="370" y="580" width="130" height="36" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
-        <text x="435" y="596" fill="white" font-size="9" font-weight="600" text-anchor="middle">Step 7a: 完成追踪</text>
-        <text x="435" y="609" fill="#94a3b8" font-size="8" text-anchor="middle">completed_task_ids 追加</text>
-
-        <rect x="530" y="580" width="120" height="36" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
-        <text x="590" y="596" fill="white" font-size="9" font-weight="600" text-anchor="middle">Step 8: CHANGELOG</text>
-        <text x="590" y="609" fill="#94a3b8" font-size="8" text-anchor="middle">追加本轮摘要</text>
-
-        <line x1="180" y1="598" x2="208" y2="598" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
-        <line x1="340" y1="598" x2="368" y2="598" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
-        <line x1="500" y1="598" x2="528" y2="598" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
-
-        <!-- push skip note -->
-        <rect x="680" y="580" width="120" height="36" rx="6" fill="rgba(251,146,60,0.3)" stroke="#fb923c" stroke-width="1"/>
-        <text x="740" y="596" fill="#fb923c" font-size="8" text-anchor="middle">Push 容错</text>
-        <text x="740" y="609" fill="#94a3b8" font-size="7" text-anchor="middle">网络失败跳过</text>
-
-        <!-- ═══════ SECTION 7: TARGET ═══════ -->
-        <rect x="40" y="660" width="780" height="70" rx="8" fill="rgba(120,53,15,0.15)" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
-        <text x="50" y="676" fill="#64748b" font-size="9" font-weight="600">🎯 目标项目</text>
-
-        <rect x="60" y="682" width="300" height="40" rx="6" fill="rgba(120,53,15,0.4)" stroke="#fbbf24" stroke-width="1.5"/>
-        <text x="210" y="700" fill="white" font-size="10" font-weight="600" text-anchor="middle">项目一 · 多角色 RAG 系统</text>
-        <text x="210" y="715" fill="#94a3b8" font-size="8" text-anchor="middle">agent-自进化版/项目一cursor版本/在线部分/</text>
-
-        <!-- arrow to target -->
-        <line x1="740" y1="617" x2="210" y2="680" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
-
-        <!-- ═══════ SIDE PANEL: Safety Architecture ═══════ -->
-        <rect x="840" y="145" width="210" height="585" rx="10" fill="rgba(136,19,55,0.08)" stroke="#fb7185" stroke-width="1" stroke-dasharray="3,3"/>
-        <text x="945" y="165" fill="#fb7185" font-size="10" font-weight="600" text-anchor="middle">🛡️ 安全架构</text>
-
-        <!-- 6 safety mechanisms -->
-        <rect x="855" y="180" width="180" height="65" rx="6" fill="rgba(136,19,55,0.5)" stroke="#fb7185" stroke-width="1"/>
-        <text x="945" y="197" fill="white" font-size="9" font-weight="600" text-anchor="middle">① state.json 幂等性</text>
-        <text x="945" y="212" fill="#94a3b8" font-size="7" text-anchor="middle">每步更新 step 字段</text>
-        <text x="945" y="226" fill="#94a3b8" font-size="7" text-anchor="middle">暂停/冲突/错误 → 退出</text>
-
-        <rect x="855" y="258" width="180" height="65" rx="6" fill="rgba(136,19,55,0.5)" stroke="#fb7185" stroke-width="1"/>
-        <text x="945" y="275" fill="white" font-size="9" font-weight="600" text-anchor="middle">② 绝对超时</text>
-        <text x="945" y="290" fill="#94a3b8" font-size="7" text-anchor="middle">Git=120s · 文件=30s</text>
-        <text x="945" y="304" fill="#94a3b8" font-size="7" text-anchor="middle">delegate_task=600s</text>
-
-        <rect x="855" y="336" width="180" height="65" rx="6" fill="rgba(136,19,55,0.5)" stroke="#fb7185" stroke-width="1"/>
-        <text x="945" y="353" fill="white" font-size="9" font-weight="600" text-anchor="middle">③ 指数退避重试</text>
-        <text x="945" y="368" fill="#94a3b8" font-size="7" text-anchor="middle">1s → 2s → 4s</text>
-        <text x="945" y="382" fill="#94a3b8" font-size="7" text-anchor="middle">网络/Git/文件锁定</text>
-
-        <rect x="855" y="414" width="180" height="65" rx="6" fill="rgba(136,19,55,0.5)" stroke="#fb7185" stroke-width="1"/>
-        <text x="945" y="431" fill="white" font-size="9" font-weight="600" text-anchor="middle">④ Git pull--rebase</text>
-        <text x="945" y="446" fill="#94a3b8" font-size="7" text-anchor="middle">冲突 → abort + 暂停</text>
-        <text x="945" y="460" fill="#94a3b8" font-size="7" text-anchor="middle">等待人工介入</text>
-
-        <rect x="855" y="492" width="180" height="65" rx="6" fill="rgba(136,19,55,0.5)" stroke="#fb7185" stroke-width="1"/>
-        <text x="945" y="509" fill="white" font-size="9" font-weight="600" text-anchor="middle">⑤ flock 并发保护</text>
-        <text x="945" y="524" fill="#94a3b8" font-size="7" text-anchor="middle">TODO.md 排他锁</text>
-        <text x="945" y="538" fill="#94a3b8" font-size="7" text-anchor="middle">防多 Agent 冲突写</text>
-
-        <rect x="855" y="570" width="180" height="65" rx="6" fill="rgba(136,19,55,0.5)" stroke="#fb7185" stroke-width="1"/>
-        <text x="945" y="587" fill="white" font-size="9" font-weight="600" text-anchor="middle">⑥ PID 文件</text>
-        <text x="945" y="602" fill="#94a3b8" font-size="7" text-anchor="middle">/tmp/swarm_evolve.pid</text>
-        <text x="945" y="616" fill="#94a3b8" font-size="7" text-anchor="middle">防重叠执行</text>
-
-        <!-- Disk + Cost monitoring -->
-        <rect x="855" y="648" width="180" height="75" rx="6" fill="rgba(251,146,60,0.3)" stroke="#fb923c" stroke-width="1"/>
-        <text x="945" y="665" fill="white" font-size="9" font-weight="600" text-anchor="middle">📊 监控触发器</text>
-        <text x="945" y="680" fill="#94a3b8" font-size="7" text-anchor="middle">磁盘 < 500MB → 告警</text>
-        <text x="945" y="694" fill="#94a3b8" font-size="7" text-anchor="middle">磁盘 < 100MB → 暂停 Git</text>
-        <text x="945" y="708" fill="#94a3b8" font-size="7" text-anchor="middle">日志 > 500MB → 轮转</text>
-
-        <!-- ═══════ SECTION 8: LOGISTICS ═══════ -->
-        <rect x="40" y="748" width="780" height="65" rx="8" fill="rgba(251,146,60,0.08)" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
-        <text x="50" y="764" fill="#64748b" font-size="9" font-weight="600">⚙️ 后勤层（self_evolve_round.py）</text>
-
-        <rect x="60" y="770" width="170" height="35" rx="6" fill="rgba(251,146,60,0.4)" stroke="#fb923c" stroke-width="1.5"/>
-        <text x="145" y="787" fill="white" font-size="9" font-weight="600" text-anchor="middle">检查磁盘</text>
-        <text x="145" y="800" fill="#94a3b8" font-size="8" text-anchor="middle">每轮开始前执行</text>
-
-        <rect x="260" y="770" width="170" height="35" rx="6" fill="rgba(251,146,60,0.4)" stroke="#fb923c" stroke-width="1.5"/>
-        <text x="345" y="787" fill="white" font-size="9" font-weight="600" text-anchor="middle">日志轮转</text>
-        <text x="345" y="800" fill="#94a3b8" font-size="8" text-anchor="middle">>500MB → 删最旧3个</text>
-
-        <rect x="460" y="770" width="170" height="35" rx="6" fill="rgba(251,146,60,0.4)" stroke="#fb923c" stroke-width="1.5"/>
-        <text x="545" y="787" fill="white" font-size="9" font-weight="600" text-anchor="middle">兜底 Git 提交</text>
-        <text x="545" y="800" fill="#94a3b8" font-size="8" text-anchor="middle">cronjob 中断时备用</text>
-
-        <rect x="660" y="770" width="140" height="35" rx="6" fill="rgba(251,146,60,0.4)" stroke="#fb923c" stroke-width="1.5"/>
-        <text x="730" y="787" fill="white" font-size="9" font-weight="600" text-anchor="middle">成本异常检查</text>
-        <text x="730" y="800" fill="#94a3b8" font-size="8" text-anchor="middle">cost_tracker 通知</text>
-
-        <!-- ═══════ BACK TO TOP ARROW ═══════ -->
-        <line x1="40" y1="93" x2="10" y2="93" stroke="#64748b" stroke-width="1" marker-end="url(#arrow)"/>
-        <text x="-5" y="88" fill="#64748b" font-size="8" text-anchor="end" transform="rotate(-90, 10, 93)">Hermes 调度循环</text>
-
-      </svg>
-    </div>
-
-    <!-- Info Cards -->
-    <div class="cards">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-dot emerald"></div>
-          <h3>管道基准</h3>
-        </div>
-        <ul>
-          <li>• 周期：每 30 分钟自动触发</li>
-          <li>• 模型：协调者 DeepSeek v4，子 Agent Ollama/qwen2.5:7b</li>
-          <li>• 常驻：tmux hermes-swarm + Gateway PID 1331</li>
-          <li>• 技能：orchestrate-swarm + dev-cell + qa-cell</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-dot rose"></div>
-          <h3>安全护栏（6 层）</h3>
-        </div>
-        <ul>
-          <li>• state.json 幂等性检查（每步更新+异常暂停）</li>
-          <li>• 绝对超时（Git 120s / 文件 30s / 委托 600s）</li>
-          <li>• 指数退避重试（1s→2s→4s，最多 3 次）</li>
-          <li>• Git pull --rebase + 冲突中止暂停</li>
-          <li>• flock 排他锁（TODO.md 并发保护）</li>
-          <li>• PID 文件（/tmp/swarm_evolve.pid 防重叠）</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-dot amber"></div>
-          <h3>门禁 & 熔断</h3>
-        </div>
-        <ul>
-          <li>• 🧪 编译门禁：py_compile 编译 → FAILED_3_TIMES 驳回</li>
-          <li>• 🪟 沙箱门禁：Docker --read-only / RLIMITS → 异常驳回</li>
-          <li>• 📊 磁盘监控：<500MB 告警，<100MB 暂停 Git</li>
-          <li>• 📝 日志轮转：目录 >500MB → 删最旧 3 个</li>
-          <li>• 💰 成本熔断：actual > 2× estimated → 终止+标记</li>
-          <li>• 🕸️ 依赖调度：completed_task_ids → 未满足依赖跳过</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="footer">
-      项目三：多Agent · /mnt/f/项目三：多Agent · GitHub: qjx181/ubiquitous-octo-giggle · 2026-05-18
-    </div>
-  </div>
+
+<h1>项目三：多Agent — 系统流程图</h1>
+<div class="subtitle">Swarm 自进化引擎 · 核心架构与工作流</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-box" style="background:#21262d;border-color:#58a6ff"></div>进程 / 模块</div>
+  <div class="legend-item"><div class="legend-box" style="background:#1f4a7d"></div>子模块</div>
+  <div class="legend-item"><div class="legend-box" style="background:#3fb950"></div>用户入口</div>
+  <div class="legend-item"><div class="legend-box" style="background:#d29922"></div>数据存储</div>
+  <div class="legend-item"><div class="legend-box" style="background:#f85149"></div>触发条件</div>
+  <div class="legend-item"><div class="legend-box" style="background:#8957e5"></div>决策点</div>
+</div>
+
+<div class="flow-container">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 2950" width="1400" height="2950">
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 用户入口层 -->
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <!-- 标题背景 -->
+  <rect x="0" y="0" width="1400" height="60" fill="#161b22" rx="0"/>
+  <text x="20" y="38" font-size="16" font-weight="bold" fill="#58a6ff">👤 用户入口层</text>
+  <text x="1200" y="38" font-size="12" fill="#8b949e">用户通过 API / 仪表盘 / CLI 操作系统</text>
+
+  <!-- 三个入口卡片 -->
+  <rect x="30" y="80" width="400" height="90" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="50" y="105" font-size="13" fill="#f0f6fc" font-weight="bold">🌐 Web 仪表盘</text>
+  <text x="50" y="122" font-size="11" fill="#8b949e">http://localhost:8000</text>
+  <text x="50" y="138" font-size="11" fill="#58a6ff">可视化界面 · 任务管理 · Bug 提交</text>
+  <text x="50" y="154" font-size="11" fill="#8b949e">实时指标 · 触发进化 · 历史查看</text>
+
+  <rect x="500" y="80" width="400" height="90" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="520" y="105" font-size="13" fill="#f0f6fc" font-weight="bold">⚡ REST API</text>
+  <text x="520" y="122" font-size="11" fill="#8b949e">POST/GET /api/*</text>
+  <text x="520" y="138" font-size="11" fill="#58a6ff">自动化集成 · Webhook · 脚本调用</text>
+  <text x="520" y="154" font-size="11" fill="#8b949e">全功能 HTTP 接口</text>
+
+  <rect x="970" y="80" width="400" height="90" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="990" y="105" font-size="13" fill="#f0f6fc" font-weight="bold">⌨️ 命令行 CLI</text>
+  <text x="990" y="122" font-size="11" fill="#8b949e">python bug_report.py --submit ...</text>
+  <text x="990" y="138" font-size="11" fill="#58a6ff">快速提交 Bug · 查看历史 · 修复</text>
+  <text x="990" y="154" font-size="11" fill="#8b949e">./start.sh start|stop|logs|restart</text>
+
+  <!-- 向下箭头 -->
+  <line x1="700" y1="175" x2="700" y2="205" stroke="#30363d" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- API 服务层 -->
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <rect x="0" y="205" width="1400" height="50" fill="#161b22"/>
+  <text x="20" y="235" font-size="16" font-weight="bold" fill="#58a6ff">⚙️ API 服务层 (FastAPI)</text>
+  <text x="1200" y="235" font-size="12" fill="#8b949e">api_service.py · 端口 8000</text>
+
+  <!-- API 路由卡片 -->
+  <rect x="30" y="265" width="1340" height="130" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <text x="50" y="290" font-size="12" fill="#8b949e">任务管理</text>
+  <rect x="50" y="298" width="200" height="24" rx="4" fill="#1f4a7d"/>
+  <text x="58" y="314" font-size="11" fill="#79c0ff">POST /api/tasks</text>
+  <rect x="260" y="298" width="200" height="24" rx="4" fill="#1f4a7d"/>
+  <text x="268" y="314" font-size="11" fill="#79c0ff">GET /api/tasks</text>
+  <rect x="470" y="298" width="240" height="24" rx="4" fill="#1f4a7d"/>
+  <text x="478" y="314" font-size="11" fill="#79c0ff">DELETE /api/tasks/{id}</text>
+  <rect x="720" y="298" width="220" height="24" rx="4" fill="#1f4a7d"/>
+  <text x="728" y="314" font-size="11" fill="#79c0ff">GET /api/tasks/{id}</text>
+
+  <text x="50" y="348" font-size="12" fill="#8b949e">Bug 管理</text>
+  <rect x="50" y="356" width="200" height="24" rx="4" fill="#8957e5"/>
+  <text x="58" y="372" font-size="11" fill="#d2a8ff">POST /api/bugs</text>
+  <rect x="260" y="356" width="200" height="24" rx="4" fill="#1f4a7d"/>
+  <text x="268" y="372" font-size="11" fill="#79c0ff">GET /api/bugs</text>
+  <rect x="470" y="356" width="240" height="24" rx="4" fill="#1f4a7d"/>
+  <text x="478" y="372" font-size="11" fill="#79c0ff">POST /api/bugs/{id}/fix</text>
+  <rect x="720" y="356" width="220" height="24" rx="4" fill="#1f4a7d"/>
+  <text x="728" y="372" font-size="11" fill="#79c0ff">GET /api/bugs/{id}/fix</text>
+
+  <text x="50" y="386" font-size="12" fill="#8b949e">系统控制</text>
+  <rect x="50" y="394" width="200" height="24" rx="4" fill="#238636"/>
+  <text x="58" y="410" font-size="11" fill="#56d364">POST /api/trigger</text>
+  <rect x="260" y="394" width="200" height="24" rx="4" fill="#238636"/>
+  <text x="268" y="410" font-size="11" fill="#56d364">GET /api/metrics</text>
+  <rect x="470" y="394" width="200" height="24" rx="4" fill="#238636"/>
+  <text x="478" y="410" font-size="11" fill="#56d364">GET /api/status</text>
+  <rect x="720" y="394" width="200" height="24" rx="4" fill="#238636"/>
+  <text x="728" y="410" font-size="11" fill="#56d364">GET /api/health</text>
+
+  <!-- 向下 -->
+  <line x1="700" y1="400" x2="700" y2="430" stroke="#30363d" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 核心功能层 -->
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <rect x="0" y="430" width="1400" height="50" fill="#161b22"/>
+  <text x="20" y="460" font-size="16" font-weight="bold" fill="#58a6ff">🔧 核心功能层</text>
+  <text x="1200" y="460" font-size="12" fill="#8b949e">三大核心模块</text>
+
+  <!-- 三个核心模块 -->
+  <!-- 模块1：进化循环 -->
+  <rect x="30" y="490" width="420" height="340" rx="8" fill="#0d1117" stroke="#58a6ff" stroke-width="2"/>
+  <rect x="30" y="490" width="420" height="36" rx="8" fill="#1f4a7d"/>
+  <rect x="30" y="510" width="420" height="16" fill="#1f4a7d"/>
+  <text x="45" y="512" font-size="13" font-weight="bold" fill="#79c0ff">🔄 进化循环模块</text>
+  <text x="45" y="542" font-size="11" fill="#8b949e">self_evolve_round.py</text>
+
+  <rect x="45" y="555" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="55" y="573" font-size="11" fill="#c9d1d9">每 30 分钟 cronjob 自动触发</text>
+
+  <rect x="45" y="592" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="55" y="610" font-size="11" fill="#c9d1d9">PID 锁 + 磁盘清理 + Git 自愈</text>
+
+  <rect x="45" y="629" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="55" y="647" font-size="11" fill="#c9d1d9">读取 TODO.md 任务队列</text>
+
+  <rect x="45" y="666" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="55" y="684" font-size="11" fill="#c9d1d9">三层成本策略（绿/黄/红熔断）</text>
+
+  <rect x="45" y="703" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="55" y="721" font-size="11" fill="#c9d1d9">微委托协议 → 子 Agent 执行</text>
+
+  <rect x="45" y="740" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="55" y="758" font-size="11" fill="#c9d1d9">四步验收（签名/语法/测试/diff）</text>
+
+  <rect x="45" y="777" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="55" y="795" font-size="11" fill="#c9d1d9">更新 state.json + 推送 Git</text>
+
+  <!-- 模块2：Bug 分析 -->
+  <rect x="490" y="490" width="420" height="340" rx="8" fill="#0d1117" stroke="#f85149" stroke-width="2"/>
+  <rect x="490" y="490" width="420" height="36" rx="8" fill="#6e2222"/>
+  <rect x="490" y="510" width="420" height="16" fill="#6e2222"/>
+  <text x="505" y="512" font-size="13" font-weight="bold" fill="#ffa198">🐛 Bug 分析与修复</text>
+  <text x="505" y="542" font-size="11" fill="#8b949e">bug_analysis_engine.py</text>
+
+  <rect x="505" y="555" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="515" y="573" font-size="11" fill="#c9d1d9">解析 Python/Java/CI 三种日志格式</text>
+
+  <rect x="505" y="592" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="515" y="610" font-size="11" fill="#c9d1d9">提取错误类型 + 文件路径 + 行号</text>
+
+  <rect x="505" y="629" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="515" y="647" font-size="11" fill="#c9d1d9">根因定位 + 修复建议 + 置信度</text>
+
+  <rect x="505" y="666" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="515" y="684" font-size="11" fill="#c9d1d9">置信度 ≥ 70% → 标记为可修复</text>
+
+  <rect x="505" y="703" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="515" y="721" font-size="11" fill="#c9d1d9">execute_bug_fix() → 读取文件 + patch</text>
+
+  <rect x="505" y="740" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="515" y="758" font-size="11" fill="#c9d1d9">py_compile 验证 → 返回修复结果</text>
+
+  <rect x="505" y="777" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="515" y="795" font-size="11" fill="#c9d1d9">JSON 持久化 → bugs/analysis_history.json</text>
+
+  <!-- 模块3：代码审查 -->
+  <rect x="950" y="490" width="420" height="340" rx="8" fill="#0d1117" stroke="#3fb950" stroke-width="2"/>
+  <rect x="950" y="490" width="420" height="36" rx="8" fill="#14532d"/>
+  <rect x="950" y="510" width="420" height="16" fill="#14532d"/>
+  <text x="965" y="512" font-size="13" font-weight="bold" fill="#56d364">🔍 代码审查模块</text>
+  <text x="965" y="542" font-size="11" fill="#8b949e">code_review.py</text>
+
+  <rect x="965" y="555" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="975" y="573" font-size="11" fill="#c9d1d9">SecurityReviewer — SQL注入/命令注入</text>
+
+  <rect x="965" y="592" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="975" y="610" font-size="11" fill="#c9d1d9">PerformanceReviewer — N+1/同步阻塞</text>
+
+  <rect x="965" y="629" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="975" y="647" font-size="11" fill="#c9d1d9">QualityReviewer — 未用import/过深嵌套</text>
+
+  <rect x="965" y="666" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="975" y="684" font-size="11" fill="#c9d1d9">PRReviewer — 综合评分 + verdict</text>
+
+  <rect x="965" y="703" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="975" y="721" font-size="11" fill="#c9d1d9">GitHub Webhook → 自动触发审查</text>
+
+  <rect x="965" y="740" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="975" y="758" font-size="11" fill="#c9d1d9">输出 Review 报告 → 提交 GitHub</text>
+
+  <rect x="965" y="777" width="390" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="975" y="795" font-size="11" fill="#c9d1d9">支持 approve/request_changes/reject</text>
+
+  <!-- 向下 -->
+  <line x1="700" y1="835" x2="700" y2="865" stroke="#30363d" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 协作系统层 -->
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <rect x="0" y="865" width="1400" height="50" fill="#161b22"/>
+  <text x="20" y="895" font-size="16" font-weight="bold" fill="#58a6ff">🤖 协作系统层（微委托协议）</text>
+  <text x="1200" y="895" font-size="12" fill="#8b949e">多 Agent 协作分工</text>
+
+  <!-- 委托流程 -->
+  <rect x="30" y="925" width="1340" height="200" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+
+  <text x="50" y="950" font-size="12" fill="#8b949e">微委托 6 步流程</text>
+
+  <!-- 6个步骤 -->
+  <rect x="50" y="965" width="190" height="70" rx="6" fill="#1f4a7d"/>
+  <text x="62" y="988" font-size="13" font-weight="bold" fill="#79c0ff">1. plan_micro</text>
+  <text x="62" y="1005" font-size="11" fill="#c9d1d9">扫描 state.json +</text>
+  <text x="62" y="1020" font-size="11" fill="#c9d1d9">TODO.md 生成计划</text>
+
+  <line x1="245" y1="1000" x2="280" y2="1000" stroke="#30363d" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="285" y="965" width="190" height="70" rx="6" fill="#1f4a7d"/>
+  <text x="297" y="988" font-size="13" font-weight="bold" fill="#79c0ff">2. build_micro</text>
+  <text x="297" y="1005" font-size="11" fill="#c9d1d9">为每个微任务</text>
+  <text x="297" y="1020" font-size="11" fill="#c9d1d9">构建委托 prompt</text>
+
+  <line x1="480" y1="1000" x2="515" y2="1000" stroke="#30363d" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="520" y="965" width="190" height="70" rx="6" fill="#1f4a7d"/>
+  <text x="532" y="988" font-size="13" font-weight="bold" fill="#79c0ff">3. delegate_task</text>
+  <text x="532" y="1005" font-size="11" fill="#c9d1d9">派发给子 Agent</text>
+  <text x="532" y="1020" font-size="11" fill="#c9d1d9">replace_string 类型</text>
+
+  <line x1="715" y1="1000" x2="750" y2="1000" stroke="#30363d" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="755" y="965" width="190" height="70" rx="6" fill="#8957e5"/>
+  <text x="767" y="988" font-size="13" font-weight="bold" fill="#d2a8ff">4. verify_micro</text>
+  <text x="767" y="1005" font-size="11" fill="#c9d1d9">检查 SUCCESS/FAIL</text>
+  <text x="767" y="1020" font-size="11" fill="#c9d1d9">重试最多 2 次</text>
+
+  <line x1="950" y1="1000" x2="985" y2="1000" stroke="#30363d" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="990" y="965" width="190" height="70" rx="6" fill="#8957e5"/>
+  <text x="1002" y="988" font-size="13" font-weight="bold" fill="#d2a8ff">5. aggregate</text>
+  <text x="1002" y="1005" font-size="11" fill="#c9d1d9">汇总通过/失败</text>
+  <text x="1002" y="1020" font-size="11" fill="#c9d1d9">更新能力画像</text>
+
+  <line x1="1185" y1="1000" x2="1220" y2="1000" stroke="#30363d" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="1225" y="965" width="135" height="70" rx="6" fill="#3fb950"/>
+  <text x="1237" y="988" font-size="13" font-weight="bold" fill="#56d364">6. 更新</text>
+  <text x="1237" y="1005" font-size="11" fill="#c9d1d9">capability_map</text>
+  <text x="1237" y="1020" font-size="11" fill="#c9d1d9">+ state.json</text>
+
+  <!-- Agent 角色 -->
+  <text x="50" y="1060" font-size="12" fill="#8b949e">Agent 角色</text>
+  <rect x="50" y="1073" width="120" height="32" rx="4" fill="#238636"/>
+  <text x="62" y="1092" font-size="11" fill="#56d364">agent-coder ✅</text>
+  <rect x="180" y="1073" width="150" height="32" rx="4" fill="#6e2222"/>
+  <text x="192" y="1092" font-size="11" fill="#ffa198">agent-reviewer ❌</text>
+  <rect x="340" y="1073" width="150" height="32" rx="4" fill="#6e2222"/>
+  <text x="352" y="1092" font-size="11" fill="#ffa198">agent-tester ❌</text>
+  <rect x="500" y="1073" width="120" height="32" rx="4" fill="#30363d"/>
+  <text x="512" y="1092" font-size="11" fill="#8b949e">agent-burst ×5</text>
+
+  <!-- 微任务类型 -->
+  <text x="700" y="1060" font-size="12" fill="#8b949e">微任务类型（delegable_tasks.json）</text>
+  <rect x="700" y="1073" width="100" height="24" rx="4" fill="#1f4a7d"/>
+  <text x="708" y="1089" font-size="10" fill="#79c0ff">replace_string</text>
+  <rect x="810" y="1073" width="100" height="24" rx="4" fill="#1f4a7d"/>
+  <text x="818" y="1089" font-size="10" fill="#79c0ff">add_import</text>
+  <rect x="920" y="1073" width="100" height="24" rx="4" fill="#1f4a7d"/>
+  <text x="928" y="1089" font-size="10" fill="#79c0ff">add_config_field</text>
+  <rect x="1030" y="1073" width="100" height="24" rx="4" fill="#1f4a7d"/>
+  <text x="1038" y="1089" font-size="10" fill="#79c0ff">run_command</text>
+  <rect x="1140" y="1073" width="100" height="24" rx="4" fill="#1f4a7d"/>
+  <text x="1148" y="1089" font-size="10" fill="#79c0ff">grep_verify</text>
+  <rect x="1240" y="1073" width="100" height="24" rx="4" fill="#30363d"/>
+  <text x="1248" y="1089" font-size="10" fill="#8b949e">+5 more</text>
+
+  <!-- 向下 -->
+  <line x1="700" y1="1130" x2="700" y2="1160" stroke="#30363d" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 数据存储层 -->
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <rect x="0" y="1160" width="1400" height="50" fill="#161b22"/>
+  <text x="20" y="1190" font-size="16" font-weight="bold" fill="#58a6ff">💾 数据存储层</text>
+  <text x="1200" y="1190" font-size="12" fill="#8b949e">文件化持久化 · 重启不丢失</text>
+
+  <!-- 存储卡片 -->
+  <rect x="30" y="1220" width="300" height="180" rx="8" fill="#0d1117" stroke="#d29922" stroke-width="1"/>
+  <rect x="30" y="1220" width="300" height="32" rx="8" fill="#422006"/>
+  <rect x="30" y="1242" width="300" height="10" fill="#422006"/>
+  <text x="45" y="1240" font-size="12" font-weight="bold" fill="#d29922">state.json</text>
+  <text x="45" y="1270" font-size="11" fill="#8b949e">轮次 / 任务 / 成本 / 诊断</text>
+  <text x="45" y="1292" font-size="11" fill="#c9d1d9">current_round: 46</text>
+  <text x="45" y="1312" font-size="11" fill="#c9d1d9">completed_tasks: 37</text>
+  <text x="45" y="1332" font-size="11" fill="#c9d1d9">pending_tasks: 4</text>
+  <text x="45" y="1352" font-size="11" fill="#c9d1d9">success_rate: 100%</text>
+  <text x="45" y="1372" font-size="11" fill="#c9d1d9">daily_budget: $2.85/$5.00</text>
+
+  <rect x="370" y="1220" width="300" height="180" rx="8" fill="#0d1117" stroke="#d29922" stroke-width="1"/>
+  <rect x="370" y="1220" width="300" height="32" rx="8" fill="#422006"/>
+  <rect x="370" y="1242" width="300" height="10" fill="#422006"/>
+  <text x="385" y="1240" font-size="12" font-weight="bold" fill="#d29922">TODO.md</text>
+  <text x="385" y="1270" font-size="11" fill="#8b949e">任务队列 · 按优先级排列</text>
+  <text x="385" y="1292" font-size="11" fill="#c9d1d9">[x] completed_task</text>
+  <text x="385" y="1312" font-size="11" fill="#c9d1d9">[ ] pending_task</text>
+  <text x="385" y="1332" font-size="11" fill="#c9d1d9">HIGH / MEDIUM / LOW 优先级</text>
+
+  <rect x="710" y="1220" width="300" height="180" rx="8" fill="#0d1117" stroke="#d29922" stroke-width="1"/>
+  <rect x="710" y="1220" width="300" height="32" rx="8" fill="#422006"/>
+  <rect x="710" y="1242" width="300" height="10" fill="#422006"/>
+  <text x="725" y="1240" font-size="12" font-weight="bold" fill="#d29922">bugs/analysis_history.json</text>
+  <text x="725" y="1270" font-size="11" fill="#8b949e">Bug 分析历史记录</text>
+  <text x="725" y="1292" font-size="11" fill="#c9d1d9">id / error_type / file / line</text>
+  <text x="725" y="1312" font-size="11" fill="#c9d1d9">confidence / root_cause</text>
+  <text x="725" y="1332" font-size="11" fill="#c9d1d9">status / fix_result</text>
+
+  <rect x="1050" y="1220" width="320" height="180" rx="8" fill="#0d1117" stroke="#d29922" stroke-width="1"/>
+  <rect x="1050" y="1220" width="320" height="32" rx="8" fill="#422006"/>
+  <rect x="1050" y="1242" width="320" height="10" fill="#422006"/>
+  <text x="1065" y="1240" font-size="12" font-weight="bold" fill="#d29922">agent_capability_map.json</text>
+  <text x="1065" y="1270" font-size="11" fill="#8b949e">Agent 能力画像 · 成功率数据</text>
+  <text x="1065" y="1292" font-size="11" fill="#c9d1d9">agent-coder: 成功率 100%</text>
+  <text x="1065" y="1312" font-size="11" fill="#c9d1d9">replace_string: 4次/4成功</text>
+  <text x="1065" y="1332" font-size="11" fill="#c9d1d9">total_tasks: 6 / success: 4</text>
+
+  <!-- 向下 -->
+  <line x1="700" y1="1405" x2="700" y2="1435" stroke="#30363d" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 部署层 -->
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <rect x="0" y="1435" width="1400" height="50" fill="#161b22"/>
+  <text x="20" y="1465" font-size="16" font-weight="bold" fill="#58a6ff">🚀 部署层</text>
+  <text x="1200" y="1465" font-size="12" fill="#8b949e">一键启动 · 任意机器运行</text>
+
+  <!-- 部署卡片 -->
+  <rect x="30" y="1495" width="420" height="180" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <text x="50" y="1520" font-size="13" font-weight="bold" fill="#f0f6fc">🐳 Docker 容器化</text>
+
+  <text x="50" y="1550" font-size="11" fill="#8b949e">文件</text>
+  <rect x="50" y="1558" width="160" height="22" rx="4" fill="#21262d"/>
+  <text x="58" y="1573" font-size="10" fill="#79c0ff">Dockerfile</text>
+  <rect x="220" y="1558" width="200" height="22" rx="4" fill="#21262d"/>
+  <text x="228" y="1573" font-size="10" fill="#79c0ff">docker-compose.yml</text>
+
+  <rect x="50" y="1588" width="160" height="22" rx="4" fill="#21262d"/>
+  <text x="58" y="1603" font-size="10" fill="#79c0ff">docker-entrypoint.sh</text>
+  <rect x="220" y="1588" width="200" height="22" rx="4" fill="#21262d"/>
+  <text x="228" y="1603" font-size="10" fill="#79c0ff">start.sh (7个子命令)</text>
+
+  <rect x="50" y="1618" width="380" height="50" rx="6" fill="#21262d" stroke="#238636"/>
+  <text x="62" y="1642" font-size="11" fill="#56d364">./start.sh start</text>
+  <text x="62" y="1658" font-size="10" fill="#8b949e">docker compose up -d --build</text>
+
+  <rect x="490" y="1495" width="420" height="180" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <text x="510" y="1520" font-size="13" font-weight="bold" fill="#f0f6fc">💻 本地运行</text>
+
+  <text x="510" y="1550" font-size="11" fill="#8b949e">启动 API 服务</text>
+  <rect x="510" y="1558" width="380" height="36" rx="4" fill="#21262d" stroke="#238636"/>
+  <text x="522" y="1578" font-size="10" fill="#56d364">python api_service.py</text>
+  <text x="522" y="1592" font-size="10" fill="#8b949e"># 浏览器打开 http://localhost:8000</text>
+
+  <text x="510" y="1618" font-size="11" fill="#8b949e">命令行 Bug 工具</text>
+  <rect x="510" y="1626" width="380" height="36" rx="4" fill="#21262d"/>
+  <text x="522" y="1646" font-size="10" fill="#c9d1d9">python bug_report.py --submit "错误日志"</text>
+
+  <rect x="950" y="1495" width="420" height="180" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <text x="970" y="1520" font-size="13" font-weight="bold" fill="#f0f6fc">☁️ 企业扩展（可选）</text>
+
+  <text x="970" y="1550" font-size="11" fill="#8b949e">可选组件</text>
+  <rect x="970" y="1558" width="130" height="22" rx="4" fill="#21262d"/>
+  <text x="978" y="1573" font-size="10" fill="#79c0ff">Prometheus</text>
+  <rect x="1110" y="1558" width="130" height="22" rx="4" fill="#21262d"/>
+  <text x="1118" y="1573" font-size="10" fill="#79c0ff">Grafana</text>
+  <rect x="1250" y="1558" width="100" height="22" rx="4" fill="#21262d"/>
+  <text x="1258" y="1573" font-size="10" fill="#79c0ff">钉钉/飞书</text>
+
+  <rect x="970" y="1588" width="380" height="80" rx="4" fill="#21262d"/>
+  <text x="982" y="1610" font-size="10" fill="#c9d1d9">Redis / Prometheus metrics / 告警通知</text>
+  <text x="982" y="1628" font-size="10" fill="#c9d1d9">GitHub API 集成 / Webhook</text>
+  <text x="982" y="1646" font-size="10" fill="#c9d1d9">钉钉/飞书告警通知</text>
+
+  <!-- 向下 -->
+  <line x1="700" y1="1680" x2="700" y2="1710" stroke="#30363d" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 用户使用流程 -->
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <rect x="0" y="1710" width="1400" height="50" fill="#161b22"/>
+  <text x="20" y="1740" font-size="16" font-weight="bold" fill="#58a6ff">👥 用户使用流程（4种场景）</text>
+
+  <!-- 场景1 -->
+  <rect x="30" y="1770" width="1340" height="90" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <rect x="30" y="1770" width="120" height="90" rx="8" fill="#3fb950"/>
+  <text x="42" y="1810" font-size="13" font-weight="bold" fill="#0d1117">场景1</text>
+  <text x="42" y="1828" font-size="11" fill="#0d1117">修 Bug</text>
+  <text x="165" y="1805" font-size="12" fill="#8b949e">①</text>
+  <rect x="185" y="1790" width="280" height="50" rx="4" fill="#21262d"/>
+  <text x="195" y="1810" font-size="11" fill="#c9d1d9">仪表盘输入项目路径</text>
+  <text x="195" y="1827" font-size="11" fill="#c9d1d9">+ 粘贴错误日志 → 分析</text>
+  <text x="480" y="1805" font-size="12" fill="#8b949e">→</text>
+  <rect x="505" y="1790" width="200" height="50" rx="4" fill="#21262d"/>
+  <text x="515" y="1810" font-size="11" fill="#c9d1d9">swarm 分析根因</text>
+  <text x="515" y="1827" font-size="11" fill="#c9d1d9">置信度 + 修复建议</text>
+  <text x="720" y="1805" font-size="12" fill="#8b949e">→</text>
+  <rect x="745" y="1790" width="180" height="50" rx="4" fill="#238636"/>
+  <text x="755" y="1810" font-size="11" fill="#56d364">置信度≥70%</text>
+  <text x="755" y="1827" font-size="11" fill="#56d364">→ 点"立即修复"</text>
+  <text x="940" y="1805" font-size="12" fill="#8b949e">→</text>
+  <rect x="965" y="1790" width="180" height="50" rx="4" fill="#21262d"/>
+  <text x="975" y="1810" font-size="11" fill="#c9d1d9">execute_bug_fix()</text>
+  <text x="975" y="1827" font-size="11" fill="#c9d1d9">自动修改 + py_compile 验证</text>
+  <text x="1160" y="1805" font-size="12" fill="#8b949e">→</text>
+  <rect x="1185" y="1790" width="170" height="50" rx="4" fill="#1f4a7d"/>
+  <text x="1195" y="1810" font-size="11" fill="#79c0ff">结果展示</text>
+  <text x="1195" y="1827" font-size="11" fill="#79c0ff">成功/失败 + 验证状态</text>
+
+  <!-- 场景2 -->
+  <rect x="30" y="1875" width="1340" height="70" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <rect x="30" y="1875" width="120" height="70" rx="8" fill="#d29922"/>
+  <text x="42" y="1907" font-size="13" font-weight="bold" fill="#0d1117">场景2</text>
+  <text x="42" y="1925" font-size="11" fill="#0d1117">扫描项目</text>
+  <text x="165" y="1907" font-size="12" fill="#8b949e">①</text>
+  <rect x="185" y="1892" width="280" height="36" rx="4" fill="#21262d"/>
+  <text x="195" y="1910" font-size="11" fill="#c9d1d9">只填项目路径（不填错误日志）</text>
+  <text x="480" y="1907" font-size="12" fill="#8b949e">→</text>
+  <rect x="505" y="1892" width="200" height="36" rx="4" fill="#21262d"/>
+  <text x="515" y="1910" font-size="11" fill="#c9d1d9">swarm 扫描整个项目</text>
+  <text x="720" y="1907" font-size="12" fill="#8b949e">→</text>
+  <rect x="745" y="1892" width="560" height="36" rx="4" fill="#1f4a7d"/>
+  <text x="755" y="1910" font-size="11" fill="#79c0ff">语法错误 / TODO/FIXME 注释 / 静默异常 → 全部列出</text>
+
+  <!-- 场景3 -->
+  <rect x="30" y="1960" width="1340" height="70" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <rect x="30" y="1960" width="120" height="70" rx="8" fill="#58a6ff"/>
+  <text x="42" y="1992" font-size="13" font-weight="bold" fill="#0d1117">场景3</text>
+  <text x="42" y="2010" font-size="11" fill="#0d1117">Code Review</text>
+  <text x="165" y="1992" font-size="12" fill="#8b949e">①</text>
+  <rect x="185" y="1977" width="280" height="36" rx="4" fill="#21262d"/>
+  <text x="195" y="1995" font-size="11" fill="#c9d1d9">GitHub PR 提交 / 手动触发</text>
+  <text x="480" y="1992" font-size="12" fill="#8b949e">→</text>
+  <rect x="505" y="1977" width="180" height="36" rx="4" fill="#21262d"/>
+  <text x="515" y="1995" font-size="11" fill="#c9d1d9">Security + Performance</text>
+  <text x="720" y="1992" font-size="12" fill="#8b949e">→</text>
+  <rect x="745" y="1977" width="200" height="36" rx="4" fill="#21262d"/>
+  <text x="755" y="1995" font-size="11" fill="#c9d1d9">综合评分 + verdict</text>
+  <text x="960" y="1992" font-size="12" fill="#8b949e">→</text>
+  <rect x="985" y="1977" width="370" height="36" rx="4" fill="#238636"/>
+  <text x="995" y="1995" font-size="11" fill="#56d364">approve / needs_changes / reject → 自动提交 GitHub Review</text>
+
+  <!-- 场景4 -->
+  <rect x="30" y="2045" width="1340" height="70" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+  <rect x="30" y="2045" width="120" height="70" rx="8" fill="#8957e5"/>
+  <text x="42" y="2077" font-size="13" font-weight="bold" fill="#0d1117">场景4</text>
+  <text x="42" y="2095" font-size="11" fill="#0d1117">自动进化</text>
+  <text x="165" y="2077" font-size="12" fill="#8b949e">①</text>
+  <rect x="185" y="2062" width="280" height="36" rx="4" fill="#21262d"/>
+  <text x="195" y="2080" font-size="11" fill="#c9d1d9">每 30 分钟 cronjob 自动触发</text>
+  <text x="480" y="2077" font-size="12" fill="#8b949e">→</text>
+  <rect x="505" y="2062" width="180" height="36" rx="4" fill="#21262d"/>
+  <text x="515" y="2080" font-size="11" fill="#c9d1d9">微委托 + 子 Agent</text>
+  <text x="720" y="2077" font-size="12" fill="#8b949e">→</text>
+  <rect x="745" y="2062" width="200" height="36" rx="4" fill="#21262d"/>
+  <text x="755" y="2080" font-size="11" fill="#c9d1d9">四步验收 + Git push</text>
+  <text x="960" y="2077" font-size="12" fill="#8b949e">→</text>
+  <rect x="985" y="2062" width="370" height="36" rx="4" fill="#238636"/>
+  <text x="995" y="2080" font-size="11" fill="#56d364">完成 TODO 任务 → 更新 state.json → 指标持久化</text>
+
+  <!-- 向下 -->
+  <line x1="700" y1="2120" x2="700" y2="2150" stroke="#30363d" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 系统特性 -->
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <rect x="0" y="2150" width="1400" height="50" fill="#161b22"/>
+  <text x="20" y="2180" font-size="16" font-weight="bold" fill="#58a6ff">⭐ 核心特性</text>
+
+  <rect x="30" y="2210" width="200" height="70" rx="6" fill="#0d1117" stroke="#3fb950" stroke-width="1"/>
+  <text x="45" y="2235" font-size="12" font-weight="bold" fill="#56d364">无状态设计</text>
+  <text x="45" y="2255" font-size="10" fill="#8b949e">所有数据存储在文件</text>
+  <text x="45" y="2272" font-size="10" fill="#8b949e">重启不丢失数据</text>
+
+  <rect x="245" y="2210" width="200" height="70" rx="6" fill="#0d1117" stroke="#3fb950" stroke-width="1"/>
+  <text x="260" y="2235" font-size="12" font-weight="bold" fill="#56d364">微委托协议</text>
+  <text x="260" y="2255" font-size="10" fill="#8b949e">子 Agent 成功率 100%</text>
+  <text x="260" y="2272" font-size="10" fill="#8b949e">replace_string 精准匹配</text>
+
+  <rect x="460" y="2210" width="200" height="70" rx="6" fill="#0d1117" stroke="#3fb950" stroke-width="1"/>
+  <text x="475" y="2235" font-size="12" font-weight="bold" fill="#56d364">快速失败</text>
+  <text x="475" y="2255" font-size="10" fill="#8b949e">60 秒超时自动终止</text>
+  <text x="475" y="2272" font-size="10" fill="#8b949e">不卡死，不浪费 token</text>
+
+  <rect x="675" y="2210" width="200" height="70" rx="6" fill="#0d1117" stroke="#3fb950" stroke-width="1"/>
+  <text x="690" y="2235" font-size="12" font-weight="bold" fill="#56d364">三级熔断</text>
+  <text x="690" y="2255" font-size="10" fill="#8b949e">$0-2 绿 / $2-4.5 黄</text>
+  <text x="690" y="2272" font-size="10" fill="#8b949e">$4.5+ 红只读模式</text>
+
+  <rect x="890" y="2210" width="200" height="70" rx="6" fill="#0d1117" stroke="#3fb950" stroke-width="1"/>
+  <text x="905" y="2235" font-size="12" font-weight="bold" fill="#56d364">能力画像</text>
+  <text x="905" y="2255" font-size="10" fill="#8b949e">数据驱动委托决策</text>
+  <text x="905" y="2272" font-size="10" fill="#8b949e">成功率实时更新</text>
+
+  <rect x="1105" y="2210" width="265" height="70" rx="6" fill="#0d1117" stroke="#3fb950" stroke-width="1"/>
+  <text x="1120" y="2235" font-size="12" font-weight="bold" fill="#56d364">Git 自愈</text>
+  <text x="1120" y="2255" font-size="10" fill="#8b949e">分支保护 / 冲突检测</text>
+  <text x="1120" y="2272" font-size="10" fill="#8b949e">心跳自愈 / 磁盘清理</text>
+
+  <!-- 向下 -->
+  <line x1="700" y1="2285" x2="700" y2="2315" stroke="#30363d" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 数据统计 -->
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <rect x="0" y="2315" width="1400" height="50" fill="#161b22"/>
+  <text x="20" y="2345" font-size="16" font-weight="bold" fill="#58a6ff">📊 当前运行数据</text>
+
+  <rect x="30" y="2375" width="1340" height="120" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+
+  <rect x="60" y="2400" width="140" height="70" rx="6" fill="#21262d"/>
+  <text x="130" y="2435" font-size="26" font-weight="bold" fill="#58a6ff" text-anchor="middle">46</text>
+  <text x="130" y="2460" font-size="11" fill="#8b949e" text-anchor="middle">当前轮次</text>
+
+  <rect x="240" y="2400" width="140" height="70" rx="6" fill="#21262d"/>
+  <text x="310" y="2435" font-size="26" font-weight="bold" fill="#3fb950" text-anchor="middle">37</text>
+  <text x="310" y="2460" font-size="11" fill="#8b949e" text-anchor="middle">完成任务</text>
+
+  <rect x="420" y="2400" width="140" height="70" rx="6" fill="#21262d"/>
+  <text x="490" y="2435" font-size="26" font-weight="bold" fill="#d29922" text-anchor="middle">4</text>
+  <text x="490" y="2460" font-size="11" fill="#8b949e" text-anchor="middle">待办任务</text>
+
+  <rect x="600" y="2400" width="140" height="70" rx="6" fill="#21262d"/>
+  <text x="670" y="2435" font-size="26" font-weight="bold" fill="#3fb950" text-anchor="middle">100%</text>
+  <text x="670" y="2460" font-size="11" fill="#8b949e" text-anchor="middle">成功率</text>
+
+  <rect x="780" y="2400" width="140" height="70" rx="6" fill="#21262d"/>
+  <text x="850" y="2435" font-size="26" font-weight="bold" fill="#58a6ff" text-anchor="middle">80%</text>
+  <text x="850" y="2460" font-size="11" fill="#8b949e" text-anchor="middle">委托成功率</text>
+
+  <rect x="960" y="2400" width="140" height="70" rx="6" fill="#21262d"/>
+  <text x="1030" y="2435" font-size="26" font-weight="bold" fill="#d29922" text-anchor="middle">$2.85</text>
+  <text x="1030" y="2460" font-size="11" fill="#8b949e" text-anchor="middle">今日消耗</text>
+
+  <rect x="1140" y="2400" width="140" height="70" rx="6" fill="#21262d"/>
+  <text x="1210" y="2435" font-size="26" font-weight="bold" fill="#3fb950" text-anchor="middle">100%</text>
+  <text x="1210" y="2460" font-size="11" fill="#8b949e" text-anchor="middle">replace_string</text>
+
+  <rect x="30" y="2510" width="1340" height="90" rx="8" fill="#161b22"/>
+  <text x="50" y="2540" font-size="12" fill="#8b949e">Phase 1-4 全部完成</text>
+  <text x="50" y="2565" font-size="11" fill="#c9d1d9">✅ 容器化部署 · ✅ Bug 分析管道 · ✅ API 服务 + Web 仪表盘 · ✅ 代码审查</text>
+  <text x="50" y="2588" font-size="11" fill="#8b949e">版本 1.0.0 · 更新于 2026-05-19 · 核心文件 20+ · 完成任务 37 个</text>
+
+  <!-- 箭头标记 -->
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#30363d"/>
+    </marker>
+  </defs>
+
+</svg>
+</div>
+
+<div style="margin-top: 20px; padding: 16px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; font-size: 13px; color: #8b949e;">
+  <strong style="color: #f0f6fc;">流程图说明</strong>：项目三从顶部用户入口（Web仪表盘 / REST API / CLI）触发，经过 API 服务层路由分发，进入三大核心功能（进化循环 / Bug分析 / 代码审查），通过微委托协议协作子Agent执行任务，数据持久化到 state.json / TODO.md / bugs/ 等文件，换机器只需 <code style="color:#79c0ff">./start.sh start</code> 一键启动。
+</div>
+
 </body>
 </html>

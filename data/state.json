@@ -1,0 +1,232 @@
+{
+  "current_round": 46,
+  "step": "completed",
+  "project_one_step": "done",
+  "project_three_step": "completed",
+  "started_at": "2026-05-19 15:55:00",
+  "completed_at": "2026-05-19T20:28:50.614999",
+  "readonly_mode": false,
+  "cronjob_resume_ready": true,
+  "last_error": null,
+  "completed_task_ids": [
+    "asyncify_session_service",
+    "cleanup_deprecated_chat_pipeline",
+    "add_token_utils_tests",
+    "test_evaluation_service",
+    "asyncify_debug_route",
+    "test_auth_service",
+    "sandbox_pool_retry_and_alert",
+    "define_agent_roles",
+    "agent_template_library",
+    "define_layered_delegation",
+    "diagnose_subagent_failure",
+    "create_delegate_optimizer",
+    "cost_incentive_mechanism",
+    "create_parallel_dispatcher",
+    "create_agent_capability_map",
+    "standardized_layer3_verification",
+    "forced_delegation_rule",
+    "parallel_multi_dispatch",
+    "cost_tracker_persistence",
+    "json_logs_startup_flag",
+    "heartbeat_self_healing",
+    "git_autopush_safety",
+    "delegation_validation_loop",
+    "metrics_sqlite_storage",
+    "self_asyncify_knowledge_store",
+    "start_sh_containerization",
+    "bug_analysis_engine",
+    "bug_report_cli",
+    "api_service_fastapi",
+    "api_dashboard_html",
+    "code_review_module",
+    "docker_compose_api_service",
+    "docker_entrypoint_api_mode",
+    "self_asyncify_session_service",
+    "self_cleanup_deprecated_files",
+    "self_container_pool_retry_logic"
+  ],
+  "in_progress_tasks": [],
+  "pending_tasks": [
+    "self_cost_tracker_persistence",
+    "self_json_logs_startup_flag",
+    "self_metrics_sqlite_storage"
+  ],
+  "permanently_failed": [],
+  "blocked_tasks": [],
+  "error_patterns": [],
+  "failed_tasks": [],
+  "blacklist_hits": [],
+  "retry_counts": {},
+  "paused_due_to_conflict": false,
+  "paused_due_to_error": false,
+  "manual_intervention_needed": false,
+  "pending_review": [],
+  "cost_tracker": {
+    "current_task_id": null,
+    "estimated_tokens": 1500,
+    "actual_tokens": 0,
+    "ratio": 0,
+    "status": "normal",
+    "tier": "yellow",
+    "dollar_spent_today": 2.85
+  },
+  "daily_budget": {
+    "dollar_limit": 5.0,
+    "dollar_spent_today": 2.85,
+    "date": "2026-05-19",
+    "readonly_mode": false,
+    "last_budget_warning": null,
+    "tier": "yellow",
+    "tier_reason": "当日花费 $2.85，黄色模式（跳过 feature/refactor，infrastructure/debug 不受限）"
+  },
+  "failure_stats": {
+    "last_analysis": "2026-05-18T20:43:00",
+    "weekly_patterns": {
+      "test_creation": {
+        "failed": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "signature_conversion": {
+        "failed": 1,
+        "total": 1,
+        "rate": 1.0
+      },
+      "api_misuse": {
+        "failed": 1,
+        "total": 1,
+        "rate": 1.0
+      }
+    },
+    "failure_injection_text": "⚠️ 历史经验：避免委托子Agent创建从零的测试文件或执行框架类任务。优先协调者直接write_file。避免涉及中文路径的cd操作。"
+  },
+  "estimated_duration_seconds": {
+    "debug": 180,
+    "feature": 600,
+    "test": 300
+  },
+  "task_coefficients": {
+    "debug": 1.5,
+    "feature": 2.5,
+    "test": 2.0
+  },
+  "cost_strategy": {
+    "tier2_boundary": 2.0,
+    "tier3_boundary": 4.5,
+    "skip_on_yellow": [
+      "feature",
+      "refactor"
+    ]
+  },
+  "diagnosis": {
+    "delegate_success_rate": 0.8,
+    "overall_success_rate": 1.0,
+    "delegated_rounds": 6,
+    "failure_patterns": {
+      "environment_dependency": 2,
+      "mock_import_failure": 2,
+      "zero_file_output": 1
+    },
+    "updated_at": "2026-05-19T19:52:50.684402"
+  },
+  "micro_plan": {
+    "tasks": {
+      "self_container_pool_retry_logic": {
+        "description": "增强容器池启动稳定性——失败重试(3次指数退避)+告警写入日志",
+        "micro_tasks": [
+          {
+            "id": "micro-001",
+            "task_type": "replace_string",
+            "params": {
+              "file": "start_sandbox_pool.sh",
+              "old_string": "# sandbox_pool.sh — 预热 Docker 容器池\n# 用途：启动常驻 sandbox 容器，避免每次 docker run 开销\n# 用法：./start_sandbox_pool.sh [start|stop|restart|status]\n# 协调者：在首次 cronjob 运行前手动执行一次 start 即可",
+              "new_string": "# sandbox_pool.sh — 预热 Docker 容器池\n# 用途：启动常驻 sandbox 容器，避免每次 docker run 开销\n# 用法：./start_sandbox_pool.sh [start|stop|restart|status]\n# 协调者：在首次 cronjob 运行前手动执行一次 start 即可\n# 自优化：已集成 _retry_docker_run（3次指数退避重试）+ _log_error（告警日志）"
+            },
+            "expected_outcome": "start_sandbox_pool.sh 新增自优化注释",
+            "depends_on": [],
+            "verify_command": "grep -c '自优化：已集成 _retry_docker_run' start_sandbox_pool.sh && echo 'PASS' || echo 'FAIL'"
+          }
+        ],
+        "total_micro": 1
+      },
+      "self_cost_tracker_persistence": {
+        "description": "将成本跟踪改为 SQLite 持久化存储，支持跨日累计和成本趋势查询",
+        "micro_tasks": [
+          {
+            "task_type": "run_command",
+            "params": {
+              "command": "echo '无法自动拆分的任务，需协调者手动干预'",
+              "timeout": 5
+            },
+            "expected_outcome": "手动处理标志",
+            "_note": "task_id=self_cost_tracker_persistence 无预设模板也无明显可拆分模式，需人工分解",
+            "id": "micro-002",
+            "depends_on": [],
+            "verify_command": "echo '手动验证'"
+          }
+        ],
+        "total_micro": 1
+      },
+      "self_json_logs_startup_flag": {
+        "description": "增加 --json-logs 启动参数，生产环境可快速开启 JSON 日志格式",
+        "micro_tasks": [
+          {
+            "task_type": "add_config_field",
+            "params": {
+              "file": "config.yaml",
+              "section": "auto",
+              "field_name": "_self_json_logs_startup_flag_placeholder",
+              "field_value": "\"pending\"",
+              "comment": "# self_json_logs_startup_flag: 待协调者填写具体配置"
+            },
+            "expected_outcome": "config.yaml 新增占位配置项",
+            "id": "micro-003",
+            "depends_on": [],
+            "verify_command": "echo '手动验证'"
+          }
+        ],
+        "total_micro": 1
+      },
+      "self_metrics_sqlite_storage": {
+        "description": "将指标存储从 JSONLines 扩展为 SQLite 原生存储，增加按时间范围聚合查询",
+        "micro_tasks": [
+          {
+            "task_type": "run_command",
+            "params": {
+              "command": "echo '无法自动拆分的任务，需协调者手动干预'",
+              "timeout": 5
+            },
+            "expected_outcome": "手动处理标志",
+            "_note": "task_id=self_metrics_sqlite_storage 无预设模板也无明显可拆分模式，需人工分解",
+            "id": "micro-004",
+            "depends_on": [],
+            "verify_command": "echo '手动验证'"
+          }
+        ],
+        "total_micro": 1
+      }
+    }
+  },
+  "parallel_plan": {
+    "batches": [
+      [
+        "self_cost_tracker_persistence",
+        "self_json_logs_startup_flag"
+      ],
+      [
+        "self_metrics_sqlite_storage"
+      ]
+    ],
+    "coordinator": [
+      "self_cost_tracker_persistence",
+      "self_json_logs_startup_flag",
+      "self_metrics_sqlite_storage"
+    ],
+    "delegate": [],
+    "max_concurrent": 3,
+    "has_work": true,
+    "planned_at": "2026-05-20T08:32:07",
+    "total_pending": 3
+  }
+}
