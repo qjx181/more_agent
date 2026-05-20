@@ -1214,7 +1214,7 @@ async def optimizer_page():
 
 @app.post("/api/optimize/start-agent")
 async def start_agent_evolution(body: dict):
-    """启动多Agent自进化：设置目标路径 + 恢复 cronjob + 立即触发
+    """启动多Agent持续自进化：设置目标路径 + 恢复 cronjob（不做一次性扫描）
 
     POST JSON body:
         target_dir: str  — 目标项目路径（必填）
@@ -1259,60 +1259,25 @@ async def start_agent_evolution(body: dict):
     except Exception as e:
         cron_msg = f"cron_warning: {e}"
 
-    # 标记正在运行
+    # 标记持续运行
     run_marker = PROJECT_DIR / "data" / ".current_run.json"
     run_marker.parent.mkdir(parents=True, exist_ok=True)
     run_marker.write_text(json.dumps({
-        "status": "running",
+        "status": "continuous",
         "target_dir": wsl_path,
-        "phase": "starting",
+        "phase": "running",
         "started_at": datetime.datetime.now().isoformat(),
+        "message": "持续进化中，每30分钟一轮",
     }), encoding="utf-8")
 
-    # 立即触发即时进化
-    if body.get("start_now", True):
-        import threading
-        def _run_now():
-            import sys as _sys, json as _json
-            for p in [str(SRC_DIR), str(PROJECT_DIR)]:
-                if p not in _sys.path: _sys.path.insert(0, p)
-            try:
-                def _progress(phase, data):
-                    try:
-                        marker = _json.loads(run_marker.read_text() if run_marker.exists() else '{}')
-                        marker["status"] = "running"
-                        marker["phase"] = phase
-                        if isinstance(data, dict):
-                            marker.update(data)
-                        run_marker.write_text(_json.dumps(marker), encoding="utf-8")
-                    except:
-                        pass
-
-                from src.analysis.evolution_engine import run_evolution_round
-                result = run_evolution_round(
-                    target_dir=wsl_path, dimensions=None, max_fixes_per_round=20,
-                    progress_callback=_progress,
-                )
-                log_file = PROJECT_DIR / "logs" / f"agent_trigger_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                log_file.parent.mkdir(parents=True, exist_ok=True)
-                log_file.write_text(_json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-
-                # 标记完成
-                run_marker.write_text(_json.dumps({
-                    "status": "completed",
-                    "target_dir": wsl_path,
-                    "phase": "done",
-                    "finished_at": datetime.datetime.now().isoformat(),
-                }), encoding="utf-8")
-            except Exception as e:
-                import traceback as _tb
-                run_marker.write_text(_json.dumps({
-                    "status": "failed", "phase": "error", "error": str(e),
-                }), encoding="utf-8")
-                (PROJECT_DIR / "logs" / "agent_error.log").write_text(
-                    f"{datetime.datetime.now()}: {e}\n{_tb.format_exc()}", encoding="utf-8")
-        t = threading.Thread(target=_run_now, daemon=True)
-        t.start()
+    return {
+        "status": "continuous",
+        "target_dir": wsl_path,
+        "cronjob": cron_msg,
+        "cronjob_name": "swarm-evolve-round",
+        "cronjob_schedule": "每30分钟",
+        "message": f"多Agent持续自进化已启动！目标：{wsl_path}。每30分钟自动跑一轮。点击停止按钮可暂停。",
+    }
 
     return {
         "status": "started",
@@ -1358,7 +1323,7 @@ async def get_agent_status():
                     dim_summary["_enterprise"]["deep_fixes"] = {
                         "succeeded": deep_fixes.get("succeeded", 0),
                         "failed": deep_fixes.get("failed", 0),
-                        "details": deep_fixes.get("details", [])[:5],
+                        "details": deep_fixes.get("details", [])[:30],
                     }
                 recent.append({
                     "file": f.name,
@@ -1388,7 +1353,7 @@ async def get_agent_status():
     if run_marker.exists():
         try:
             marker = json.loads(run_marker.read_text(encoding="utf-8"))
-            if marker.get("status") == "running":
+            if marker.get("status") in ("running", "continuous"):
                 running = marker
         except:
             pass
@@ -1399,6 +1364,41 @@ async def get_agent_status():
         "recent_runs": recent,
         "currently_running": running,
         "cronjob_schedule": "每30分钟",
+    }
+
+
+# ── 停止自进化 ────────────────────────────────────────────────────
+
+
+@app.post("/api/optimize/stop-agent")
+async def stop_agent():
+    """停止多Agent自进化：直接暂停 cronjob"""
+    # 直接修改 cron jobs JSON 配置文件
+    cron_file = Path.home() / ".hermes" / "cron" / "jobs.json"
+    if cron_file.exists():
+        try:
+            cron_data = json.loads(cron_file.read_text(encoding="utf-8"))
+            for job in cron_data.get("jobs", []):
+                if job.get("job_id") == "79cb9d06dc5d":
+                    job["enabled"] = False
+                    job["state"] = "paused"
+                    job["paused_at"] = datetime.datetime.now().isoformat()
+                    break
+            cron_file.write_text(json.dumps(cron_data, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as e:
+            pass
+
+    # 写停止标记
+    run_marker = PROJECT_DIR / "data" / ".current_run.json"
+    run_marker.write_text(json.dumps({
+        "status": "stopped",
+        "phase": "paused",
+        "stopped_at": datetime.datetime.now().isoformat(),
+    }), encoding="utf-8")
+
+    return {
+        "status": "stopped",
+        "message": "多Agent自进化已停止，cronjob 已暂停",
     }
 
 

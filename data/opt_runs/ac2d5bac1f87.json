@@ -1,8 +1,0 @@
-{
-  "run_id": "ac2d5bac1f87",
-  "target_dir": "/mnt/f/项目三：多Agent",
-  "type": "auto",
-  "status": "failed",
-  "error": "No module named 'src.analysis.optimizer_engine'",
-  "total_rounds": 0
-}

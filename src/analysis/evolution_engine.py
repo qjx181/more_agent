@@ -322,15 +322,16 @@ def run_evolution_round(
         report["deep_scan"] = {"error": str(e), "score": 0, "issues": []}
         _progress("deep_scan_error", {"message": f"深度扫描失败: {e}"})
 
-    # ── 深度修复（企业级） ──
+    # ── 深度修复（企业级 + 自学习） ──
     deep_issues = report.get("deep_scan", {}).get("issues", [])
     if deep_issues:
         _progress("deep_fixing", {"total": len(deep_issues), "message": f"尝试修复深层问题...共 {len(deep_issues)} 个"})
         try:
             from src.fixers.enterprise_fixer import try_fix_deep, DEEP_FIXERS
+            from src.analysis.evolve_learn import record_fix, should_skip, get_skip_reason
             fixable_types = {k for k, v in DEEP_FIXERS.items() if v is not None}
 
-            deep_fixes = {"attempted": 0, "succeeded": 0, "failed": 0, "details": []}
+            deep_fixes = {"attempted": 0, "succeeded": 0, "failed": 0, "skipped_learned": 0, "details": []}
             # 按修复能力排序：可自动修复的优先
             sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
             sorted_issues = sorted(
@@ -338,30 +339,55 @@ def run_evolution_round(
                 key=lambda x: sev_order.get(x.get("severity", "low"), 99),
             )
 
-            for issue in sorted_issues[:20]:  # 每轮最多20个
-                deep_fixes["attempted"] += 1
-                result = try_fix_deep(issue, Path(target_dir))
-                deep_fixes["details"].append({
-                    "issue_type": issue.get("type", ""),
-                    "severity": issue.get("severity", ""),
-                    "file": issue.get("file", ""),
-                    "line": issue.get("line", 0),
-                    "fix_result": result,
-                })
-                if result.get("success"):
-                    deep_fixes["succeeded"] += 1
-                else:
-                    deep_fixes["failed"] += 1
+                        # 按文件分组：一次修完一个文件的所有问题
+            from collections import defaultdict
+            file_issues = defaultdict(list)
+            for iss in sorted_issues:
+                file_issues[iss.get("file", "unknown")].append(iss)
 
+            file_order = sorted(file_issues.items(), key=lambda x: len(x[1]), reverse=True)
+
+            for file_path, issues_in_file in file_order[:5]:
                 _progress("deep_fixing", {
-                    "attempted": deep_fixes["attempted"],
-                    "succeeded": deep_fixes["succeeded"],
-                    "failed": deep_fixes["failed"],
-                    "total": len(sorted_issues),
-                    "message": f"深层修复: {deep_fixes['succeeded']}成功 / {deep_fixes['failed']}失败 / {deep_fixes['attempted']}尝试",
+                    "file": file_path.split("/")[-1],
+                    "file_issues": len(issues_in_file),
+                    "message": f"正在修复 {file_path.split('/')[-1]}",
                 })
 
+                for issue in issues_in_file:
+                    issue_type = issue.get("type", "")
+                    if should_skip(issue_type, file_path):
+                        deep_fixes["skipped_learned"] += 1
+                        continue
+
+                    deep_fixes["attempted"] += 1
+                    result = try_fix_deep(issue, Path(target_dir))
+                    success = result.get("success", False)
+                    record_fix(issue_type, file_path, success,
+                               result.get("error", result.get("reason", "")))
+
+                    deep_fixes["details"].append({
+                        "issue_type": issue_type,
+                        "severity": issue.get("severity", ""),
+                        "file": file_path,
+                        "line": issue.get("line", 0),
+                        "fix_result": result,
+                    })
+                    if success:
+                        deep_fixes["succeeded"] += 1
+                    else:
+                        deep_fixes["failed"] += 1
+
+                    _progress("deep_fixing", {
+                        "attempted": deep_fixes["attempted"],
+                        "succeeded": deep_fixes["succeeded"],
+                        "file": file_path.split("/")[-1],
+                        "message": f"{file_path.split('/')[-1]}: 成功{deep_fixes['succeeded']}",
+                    })
             report["deep_fixes"] = deep_fixes
+            # 附带学习统计
+            from src.analysis.evolve_learn import get_stats
+            report["learn_stats"] = get_stats()
             _progress("deep_fixed", {
                 "succeeded": deep_fixes["succeeded"],
                 "message": f"深层修复完成: 成功 {deep_fixes['succeeded']} 个",

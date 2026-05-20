@@ -1,0 +1,1302 @@
+{
+  "failed_fixes": [
+    {
+      "fingerprint": "e68ff430c467",
+      "issue_type": "swallowed_exception",
+      "error": "修复后语法错误",
+      "count": 6,
+      "first_seen": "2026-05-20T17:25:30.108808",
+      "last_seen": "2026-05-20T17:27:47.152143"
+    },
+    {
+      "fingerprint": "0120f86a9d60",
+      "issue_type": "missing_timeout_config",
+      "error": "无法读取文件",
+      "count": 6,
+      "first_seen": "2026-05-20T17:25:30.260034",
+      "last_seen": "2026-05-20T17:27:47.443653"
+    },
+    {
+      "fingerprint": "92fa70302fff",
+      "issue_type": "missing_timeout_config",
+      "error": "不是 requests 调用",
+      "count": 23,
+      "first_seen": "2026-05-20T17:25:30.358207",
+      "last_seen": "2026-05-20T18:01:42.909502"
+    }
+  ],
+  "skip_patterns": {
+    "e68ff430c467": {
+      "issue_type": "swallowed_exception",
+      "reason": "连续失败 3 次: 修复后语法错误",
+      "skipped_at": "2026-05-20T17:25:30.218127"
+    },
+    "92fa70302fff": {
+      "issue_type": "missing_timeout_config",
+      "reason": "连续失败 3 次: 不是 requests 调用",
+      "skipped_at": "2026-05-20T17:25:30.453389"
+    },
+    "0120f86a9d60": {
+      "issue_type": "missing_timeout_config",
+      "reason": "连续失败 3 次: 无法读取文件",
+      "skipped_at": "2026-05-20T17:25:30.556826"
+    }
+  },
+  "skill_suggestions": [
+    {
+      "suggestion_key": "skill_missing_return_type",
+      "issue_type": "missing_return_type",
+      "count": 3,
+      "suggested_at": "2026-05-20T17:25:30.936908",
+      "message": "修复模式 'missing_return_type' 已成功 3 次，建议封装为 Hermes skill"
+    },
+    {
+      "suggestion_key": "skill_print_used",
+      "issue_type": "print_used",
+      "count": 3,
+      "suggested_at": "2026-05-20T18:01:44.365696",
+      "message": "修复模式 'print_used' 已成功 3 次，建议封装为 Hermes skill"
+    }
+  ],
+  "fix_history": [
+    {
+      "issue_type": "swallowed_exception",
+      "file": "在线部分/tests/test_data_loader.py",
+      "success": false,
+      "error": "修复后语法错误",
+      "at": "2026-05-20T17:25:30.108134"
+    },
+    {
+      "issue_type": "swallowed_exception",
+      "file": "在线部分/web_fallback.py",
+      "success": false,
+      "error": "修复后语法错误",
+      "at": "2026-05-20T17:25:30.163678"
+    },
+    {
+      "issue_type": "swallowed_exception",
+      "file": "在线部分/web_fallback.py",
+      "success": false,
+      "error": "修复后语法错误",
+      "at": "2026-05-20T17:25:30.218083"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "__init__.py",
+      "success": false,
+      "error": "无法读取文件",
+      "at": "2026-05-20T17:25:30.260005"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/__init__.py",
+      "success": false,
+      "error": "无法读取文件",
+      "at": "2026-05-20T17:25:30.310402"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/auth.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:25:30.358176"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/data_loader.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:25:30.403350"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/main.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:25:30.453346"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/milvus.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:25:30.503225"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/offline/__init__.py",
+      "success": false,
+      "error": "无法读取文件",
+      "at": "2026-05-20T17:25:30.556781"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/reranker.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:25:30.601834"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/role_manager.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:25:30.655373"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/routes/__init__.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:25:30.704934"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "在线部分/routes/auth.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T17:25:30.765986"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "在线部分/routes/auth.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T17:25:30.823682"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/routes/auth.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:25:30.871922"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "在线部分/routes/chat.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T17:25:30.936886"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "在线部分/routes/chat.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T17:25:30.999288"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/routes/chat.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:25:31.049178"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "在线部分/routes/debug.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T17:25:31.107434"
+    },
+    {
+      "issue_type": "swallowed_exception",
+      "file": "在线部分/tests/test_data_loader.py",
+      "success": false,
+      "error": "修复后语法错误",
+      "at": "2026-05-20T17:27:47.053032"
+    },
+    {
+      "issue_type": "swallowed_exception",
+      "file": "在线部分/web_fallback.py",
+      "success": false,
+      "error": "修复后语法错误",
+      "at": "2026-05-20T17:27:47.103412"
+    },
+    {
+      "issue_type": "swallowed_exception",
+      "file": "在线部分/web_fallback.py",
+      "success": false,
+      "error": "修复后语法错误",
+      "at": "2026-05-20T17:27:47.152104"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "__init__.py",
+      "success": false,
+      "error": "无法读取文件",
+      "at": "2026-05-20T17:27:47.190701"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/__init__.py",
+      "success": false,
+      "error": "无法读取文件",
+      "at": "2026-05-20T17:27:47.233855"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/auth.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:27:47.276050"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/data_loader.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:27:47.314935"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/main.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:27:47.357715"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/milvus.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:27:47.401662"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/offline/__init__.py",
+      "success": false,
+      "error": "无法读取文件",
+      "at": "2026-05-20T17:27:47.443622"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/reranker.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:27:47.488386"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/role_manager.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:27:47.534628"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/routes/__init__.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:27:47.576987"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/routes/auth.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:27:47.618648"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/routes/chat.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:27:47.662819"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/routes/debug.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:27:47.703507"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "在线部分/routes/session.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T17:27:47.759094"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "在线部分/routes/session.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T17:27:47.811101"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/routes/session.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:27:47.847880"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "在线部分/services/__init__.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T17:27:47.887656"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:37.918279"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:37.973148"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.031734"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.097684"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.157640"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.212218"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.265113"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.318080"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.377293"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.436276"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.492379"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.545866"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.600845"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.653495"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.709847"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.765776"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.819527"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.872646"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.931054"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:38.985148"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.039974"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.096698"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.147061"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.198689"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.250993"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.301408"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.350147"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.400091"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.456799"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.508881"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.560513"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.613572"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.668351"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.721723"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.776905"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.831129"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_token_utils.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.888468"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "tests/test_token_utils.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T18:01:39.933007"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:39.986259"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.040269"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.098120"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.157296"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.213359"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.275235"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.334759"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.388849"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.443614"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.496924"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.551578"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.607187"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.665489"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.721476"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.776721"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.829834"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.882112"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.933239"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:40.984791"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.039506"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.095790"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.148577"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.205256"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.255638"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.316692"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.374859"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.430004"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.487766"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_evaluation_service.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.542358"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.596848"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.649230"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.701698"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.757169"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.811562"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.865237"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.915632"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:41.970442"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.030504"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.085691"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.140196"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.191736"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.245343"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.301561"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.356730"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.409285"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.461804"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.517516"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.568504"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.618386"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.666647"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.719418"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.767379"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.818213"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_retrieval.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.867399"
+    },
+    {
+      "issue_type": "missing_timeout_config",
+      "file": "tests/test_retrieval.py",
+      "success": false,
+      "error": "不是 requests 调用",
+      "at": "2026-05-20T18:01:42.909467"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:42.969914"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.025798"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.084867"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.140046"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.194427"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.247707"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.301241"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.355551"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.409725"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.468226"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.521812"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.578336"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.636192"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.691958"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.746518"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.802067"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.861889"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.914827"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:43.970551"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.026124"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.077004"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.128932"
+    },
+    {
+      "issue_type": "missing_return_type",
+      "file": "tests/test_knowledge_store.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.184515"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.250625"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.310887"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.365654"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.419283"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.473807"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.527015"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.579946"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.638092"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.695876"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.759723"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.820768"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.876390"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.935480"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:44.992905"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:45.058311"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:45.114896"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:45.174669"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:45.234421"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:45.297723"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:45.357550"
+    },
+    {
+      "issue_type": "print_used",
+      "file": "tests/regression/regression_runner.py",
+      "success": true,
+      "error": "",
+      "at": "2026-05-20T18:01:45.419655"
+    }
+  ]
+}
