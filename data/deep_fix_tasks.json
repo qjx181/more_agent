@@ -83,5 +83,10 @@
       "description": "函数 main 圈复杂度 64，超过建议值 15",
       "suggestion": "拆分为多个小函数，每个函数职责单一"
     }
-  ]
+  ],
+  "fixed_count": 10,
+  "fixed_types": [
+    "high_cyclomatic_complexity (extracted into sub-functions)"
+  ],
+  "status": "fixed_by_coordinator"
 }
