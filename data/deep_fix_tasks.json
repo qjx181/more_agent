@@ -9,7 +9,8 @@
       "file": "src/api/api_service.py",
       "line": 932,
       "description": "函数 _auto_optimize_loop 圈复杂度 21，超过建议值 15",
-      "suggestion": "拆分为多个小函数，每个函数职责单一"
+      "suggestion": "拆分为多个小函数，每个函数职责单一",
+      "fixed_in": "Round 50"
     },
     {
       "type": "high_cyclomatic_complexity",
@@ -17,7 +18,8 @@
       "file": "src/api/api_service.py",
       "line": 1374,
       "description": "函数 get_agent_status 圈复杂度 17，超过建议值 15",
-      "suggestion": "拆分为多个小函数，每个函数职责单一"
+      "suggestion": "拆分为多个小函数，每个函数职责单一",
+      "fixed_in": "Round 50"
     },
     {
       "type": "high_cyclomatic_complexity",
@@ -25,7 +27,8 @@
       "file": "src/core/self_evolve_round.py",
       "line": 70,
       "description": "函数 _parse_yaml_top_level 圈复杂度 17，超过建议值 15",
-      "suggestion": "拆分为多个小函数，每个函数职责单一"
+      "suggestion": "拆分为多个小函数，每个函数职责单一",
+      "fixed_in": "Round 50"
     },
     {
       "type": "high_cyclomatic_complexity",
@@ -33,7 +36,8 @@
       "file": "src/fixers/enterprise_fixer.py",
       "line": 47,
       "description": "函数 fix_swallowed_exception 圈复杂度 20，超过建议值 15",
-      "suggestion": "拆分为多个小函数，每个函数职责单一"
+      "suggestion": "拆分为多个小函数，每个函数职责单一",
+      "fixed_in": "Round 50"
     },
     {
       "type": "high_cyclomatic_complexity",
@@ -41,7 +45,15 @@
       "file": "src/infra/swarm_metrics.py",
       "line": 598,
       "description": "函数 generate_text_report 圈复杂度 16，超过建议值 15",
-      "suggestion": "拆分为多个小函数，每个函数职责单一"
+      "suggestion": "拆分为多个小函数，每个函数职责单一",
+      "fixed_in": "Round 50"
     }
-  ]
+  ],
+  "fixed_count": 5,
+  "fixed_types": [
+    "high_cyclomatic_complexity (extracted into sub-functions)"
+  ],
+  "status": "fixed_by_scheduler",
+  "round": 50,
+  "fix_timestamp": "2026-05-22 20:30:00"
 }

@@ -457,8 +457,33 @@
     "coordinator_direct_write_advantage": "Confirmed across rounds 31-43. Coordinator write_file for interface-unchanged transformations, new test files, and single-file incremental additions is always faster and more reliable than delegation to qwen2.5:7b.",
     "subagent_zero_output_pattern": "qwen2.5:7b consistently reads the file (1 read_file call) but produces zero files (0 write_file/patch calls) when the task requires non-trivial code generation. This pattern has been observed 4 times across rounds 39-43.",
     "force_delegation_paradox": "Forced delegation rule creates a paradox: sub-agents fail at the very tasks most delegation-capable agents would be assigned (code generation), making the rule effectively a token waste. The value of forced delegation is in exploration, not execution.",
+    "coordinator_direct_refactor_effective": "Round 50 confirmed: direct patching (5 refactors) is more reliable than delegation for cyclomatic complexity reduction. All 5 passed syntax check on first attempt.",
     "same_file_parallel_delegation": "Two tasks modifying the same file (self_evolve_round.py) cannot be delegated in parallel to qwen2.5:7b — both will read but neither will write, leaving zero changes AND no conflict detection. Coordinator should handle same-file tasks sequentially via write_file/patch in a single session."
   },
+  "rounds_50": [
+    {
+      "round": 50,
+      "timestamp": "2026-05-22 20:30:00",
+      "task": "scheduler_round — 修复5个高圈复杂度问题 + 创建重构技能",
+      "approach": "协调者直接 patch 重构（子Agent委托失败后降级），每轮 py_compile 语法验证",
+      "result": "success",
+      "files_modified": [
+        "src/api/api_service.py",
+        "src/core/self_evolve_round.py",
+        "src/fixers/enterprise_fixer.py",
+        "src/infra/swarm_metrics.py"
+      ],
+      "files_created": [
+        "/home/qjx/.hermes/skills/refactor-high-cyclomatic-complexity/SKILL.md"
+      ],
+      "lines_added": 363,
+      "lines_removed": 303,
+      "git_commit": "a963d3e",
+      "good": "5/5 修复全部通过语法验证。子Agent（qwen2.5:7b）分析正确但未生成代码，协调者接手后直接 patch 完成。新 skill 已注册到技能系统。",
+      "waste": "子Agent委托 3 个任务耗时 ~178s 但未产出代码——应优先用协调者直接 patch。",
+      "new_skill": "refactor-high-cyclomatic-complexity — 提取子函数降低圈复杂度（SKILL.md 含5个真实案例）"
+    }
+  ],
   "total_lines_added": 9743,
   "total_lines_removed": 4307
 }
