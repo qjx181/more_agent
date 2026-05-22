@@ -1206,6 +1206,9 @@ def main():
             relog("❌", "git status 超时（10s），跳过项目三同步")
 
         # ── 4b. 🚀 持续优化引擎（九维全覆盖）────────────────────────────
+        # 确保 src/ 在 sys.path 中
+        sys.path.insert(0, str(SWARM_DIR))
+        
         # 成本检查：黄色/红色模式时降级为 dry_run（只扫描不修改）
         cost_tier = cost_warning or ""
         is_dry_run = bool(cost_tier and "跳过" in str(cost_tier))
@@ -1388,6 +1391,8 @@ def main():
             relog("⚠️", "成本记录失败：%s", exc)
 
         # ── 11. 更新 state.json ──
+        state = load_state()
+        current_round = state.get("current_round", 0) + 1
         state["current_round"] = current_round
         state["step"] = "done"
         state["completed_at"] = timestamp

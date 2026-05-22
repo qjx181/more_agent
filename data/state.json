@@ -81,7 +81,7 @@
     "tier_reason": "当日花费 $2.85，黄色模式（跳过 feature/refactor，infrastructure/debug 不受限）"
   },
   "failure_stats": {
-    "last_analysis": "2026-05-20 10:54:23",
+    "last_analysis": "2026-05-22 17:00:57",
     "weekly_patterns": {},
     "failure_injection_text": "",
     "total_completed": 36
@@ -193,7 +193,7 @@
     "delegate": [],
     "max_concurrent": 3,
     "has_work": true,
-    "planned_at": "2026-05-20T10:54:29",
+    "planned_at": "2026-05-22T17:01:00",
     "total_pending": 3
   }
 }
