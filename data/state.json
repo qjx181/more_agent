@@ -72,12 +72,12 @@
     "dollar_spent_today": 2.85
   },
   "daily_budget": {
-    "dollar_limit": 5.0,
+    "dollar_limit": 10.0,
     "dollar_spent_today": 2.85,
     "date": "2026-05-19",
     "readonly_mode": false,
     "last_budget_warning": null,
-    "tier": "yellow",
+    "tier": "green",
     "tier_reason": "当日花费 $2.85，黄色模式（跳过 feature/refactor，infrastructure/debug 不受限）"
   },
   "failure_stats": {

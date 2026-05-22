@@ -448,11 +448,12 @@ def scan_deep(project_root: str) -> dict:
     all_issues = []
     files_scanned = 0
 
-    # 扫描所有 Python 文件（排除 site-packages、venv、node_modules）
+    # 扫描所有 Python 文件（排除 site-packages、venv、node_modules + 自身分析目录）
     for py_file in sorted(root.rglob("*.py")):
         rel = py_file.relative_to(root)
         if any(p in str(rel) for p in ['.hermes', '__pycache__', 'venv', 'node_modules',
-                                         '.git', 'dist', 'build', 'env']):
+                                         '.git', 'dist', 'build', 'env', 'src/analysis',
+                                         'src/optimizer']):
             continue
 
         try:
