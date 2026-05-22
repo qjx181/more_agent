@@ -67,6 +67,41 @@ def _get_project1_dir() -> Path:
 PROJECT1_DIR = _get_project1_dir()
 
 
+def _parse_yaml_top_level(text: str, result: dict) -> None:
+    """解析 YAML 顶层 key: value 对。"""
+    current_key = None
+    current_indent = 0
+    in_list = False
+    list_items = []
+    for raw_line in text.split("\n"):
+        line = raw_line.lstrip()
+        if not line or line.startswith("#"):
+            continue
+        indent = len(raw_line) - len(line)
+        if indent == 0 and ":" in line:
+            if current_key and in_list:
+                result[current_key] = list_items
+                list_items = []
+                in_list = False
+            current_key = line.split(":")[0].strip()
+            current_indent = indent
+            value = line.split(":", 1)[1].strip().strip("'\"").strip()
+            if value:
+                result[current_key] = value
+            elif not line.rstrip().endswith(":"):
+                result[current_key] = value
+            else:
+                result[current_key] = None
+        elif current_key and indent > current_indent and ":" not in line:
+            if line.startswith("- "):
+                item = line[1:].strip().strip("'\"").strip()
+                if item:
+                    list_items.append(item)
+                in_list = True
+    if current_key and in_list:
+        result[current_key] = list_items
+
+
 def _get_config() -> dict:
     """从 config.yaml 读取完整配置（无 yaml 依赖）。"""
     cfg_path = SWARM_DIR / "config.yaml"
@@ -74,40 +109,8 @@ def _get_config() -> dict:
         return {}
     try:
         text = cfg_path.read_text(encoding="utf-8")
-        # 简单 YAML 解析：提取顶层 key: value 对
         result = {}
-        current_key = None
-        current_indent = 0
-        in_list = False
-        list_items = []
-        for raw_line in text.split("\n"):
-            line = raw_line.lstrip()
-            if not line or line.startswith("#"):
-                continue
-            indent = len(raw_line) - len(line)
-            if indent == 0 and ":" in line:
-                if current_key and in_list:
-                    result[current_key] = list_items
-                    list_items = []
-                    in_list = False
-                current_key = line.split(":")[0].strip()
-                current_indent = indent
-                value = line.split(":", 1)[1].strip().strip("'\"").strip()
-                if value:
-                    result[current_key] = value
-                elif not line.rstrip().endswith(":"):
-                    result[current_key] = value
-                else:
-                    result[current_key] = None
-            elif current_key and indent > current_indent and ":" not in line:
-                # 列表项（以 - 开头）
-                if line.startswith("- "):
-                    item = line[1:].strip().strip("'\"").strip()
-                    if item:
-                        list_items.append(item)
-                    in_list = True
-        if current_key and in_list:
-            result[current_key] = list_items
+        _parse_yaml_top_level(text, result)
         return result
     except Exception:
         return {}
@@ -866,6 +869,56 @@ def _get_heartbeat_config() -> dict:
         return {"heartbeat_dir": "heartbeats", "heartbeat_timeout": 30}
 
 
+def _check_single_pid_file(pid_file: Path, now: float, hb_timeout: int) -> dict:
+    """检查单个 PID 文件是否超时，返回检查结果。"""
+    if not pid_file.is_file() or not pid_file.name.endswith(".pid"):
+        return {"skip": True}
+    try:
+        mtime = pid_file.stat().st_mtime
+        age = now - mtime
+        agent_name = pid_file.name.replace(".pid", "")
+    except OSError as e:
+        return {"skip": True, "error": f"心跳文件 {pid_file.name} 读取失败: {e}"}
+    if age < hb_timeout:
+        return {"skip": True}
+    return {"agent_name": agent_name, "pid_file": pid_file, "age": age}
+
+
+def _try_restart_agent(agent_name: str, old_pid: int, pid_file: Path) -> bool:
+    """尝试 kill 旧进程并重启 agent。返回是否成功重启。"""
+    if not old_pid:
+        relog("💓", "无 PID 的心跳文件: %s, 清理", pid_file.name)
+        pid_file.unlink(missing_ok=True)
+        return False
+    try:
+        os.kill(old_pid, 0)  # 检查进程是否存在
+        relog("💓", "心跳超时: %s (pid=%d, %.0fs 无更新), kill 并重启", agent_name, old_pid)
+        os.kill(old_pid, 15)  # SIGTERM
+        pid_file.unlink(missing_ok=True)
+    except OSError:
+        relog("💓", "僵尸心跳: %s (pid=%d 已无进程), 清理 PID 文件", agent_name, old_pid)
+        pid_file.unlink(missing_ok=True)
+        return False
+
+    script_path = SWARM_DIR / f"{agent_name}.py"
+    if not script_path.exists():
+        relog("💓", "没有重启脚本: %s", script_path)
+        return False
+    try:
+        proc = subprocess.Popen(
+            [sys.executable, str(script_path)],
+            cwd=str(SWARM_DIR),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        pid_file.write_text(str(proc.pid))
+        relog("✅", "重启 %s 成功 (新 pid=%d)", agent_name, proc.pid)
+        return True
+    except OSError as e:
+        relog("❌", "重启 %s 失败: %s", agent_name, e)
+        return False
+
+
 def check_and_heal_heartbeats() -> int:
     """心跳超时检测 + 自动重启失联 agent。
 
@@ -893,62 +946,20 @@ def check_and_heal_heartbeats() -> int:
         if restarted >= max_restarts:
             break
 
-        if not pid_file.is_file() or not pid_file.name.endswith(".pid"):
+        check = _check_single_pid_file(pid_file, now, hb_timeout)
+        if check.get("skip"):
             continue
 
-        # 检查文件修改时间
-        try:
-            mtime = pid_file.stat().st_mtime
-            age = now - mtime
-            agent_name = pid_file.name.replace(".pid", "")
-        except OSError as e:
-            relog("⚠️", "心跳文件 %s 读取失败: %s", pid_file.name, e)
-            continue
-
-        if age < hb_timeout:
-            continue  # 心跳正常，跳过
-
-        # 心跳超时 — 尝试 kill + restart
+        agent_name = check["agent_name"]
         try:
             pid_text = pid_file.read_text().strip()
             old_pid = int(pid_text) if pid_text and pid_text.isdigit() else None
         except (OSError, ValueError):
             old_pid = None
 
-        if old_pid:
-            try:
-                os.kill(old_pid, 0)  # 检查进程是否存在
-                # 进程存在但超时 → kill
-                relog("💓", "心跳超时: %s (pid=%d, %.0fs 无更新), kill 并重启", agent_name, old_pid, age)
-                os.kill(old_pid, 15)  # SIGTERM
-                pid_file.unlink(missing_ok=True)
-            except OSError:
-                # 进程已不存在, 清理 PID 文件
-                relog("💓", "僵尸心跳: %s (pid=%d 已无进程), 清理 PID 文件", agent_name, old_pid)
-                pid_file.unlink(missing_ok=True)
-                continue
-        else:
-            relog("💓", "无 PID 的心跳文件: %s, 清理", pid_file.name)
-            pid_file.unlink(missing_ok=True)
-            continue
-
-        # 尝试重启（通过 agent_name.py 脚本）
-        script_path = SWARM_DIR / f"{agent_name}.py"
-        if script_path.exists():
-            try:
-                proc = subprocess.Popen(
-                    [sys.executable, str(script_path)],
-                    cwd=str(SWARM_DIR),
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-                pid_file.write_text(str(proc.pid))
-                relog("✅", "重启 %s 成功 (新 pid=%d)", agent_name, proc.pid)
-                restarted += 1
-            except OSError as e:
-                relog("❌", "重启 %s 失败: %s", agent_name, e)
-        else:
-            relog("⚠️", "无法重启 %s: 脚本 %s 不存在", agent_name, script_path.name)
+        if _try_restart_agent(agent_name, old_pid, pid_file):
+            restarted += 1
+    return restarted
 
     if restarted > 0:
         relog("💓", "本轮重启 %d 个失联 agent", restarted)
@@ -1086,276 +1097,248 @@ def run_safe_git_push(repo_dir: Path, message: str, repo_name: str = "unknown") 
 # ═══════════════════════════════════════════════════════════════════════
 
 
-def main():
-    """主入口。
-
-    完整流程：
-      1. 获取 PID 文件锁（含僵尸自动清理）
-      2. 冲突自愈检查
-      3. 磁盘空间检查 + 日志清理
-      4. 成本熔断检查
-      5. 项目一同步
-      6. 项目三同步
-      7. 分层委托诊断 + 强制委托检查
-      8. ⬆️ 并行任务规划（新）
-      9. 更新 state.json
-    """
-    # ── 0a. CLI 参数解析（--json-logs） ──
+def _parse_cli_args() -> str:
+    """解析 CLI 参数。返回时间戳。"""
     import argparse
-
     arg_parser = argparse.ArgumentParser(description="项目三自进化后勤脚本")
-    arg_parser.add_argument(
-        "--json-logs",
-        action="store_true",
-        default=False,
-        help="启用 JSON 格式日志输出",
-    )
+    arg_parser.add_argument("--json-logs", action="store_true", default=False, help="启用 JSON 格式日志输出")
     cli_args, _ = arg_parser.parse_known_args()
     if cli_args.json_logs:
         global _JSON_MODE
         _JSON_MODE = True
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def _sync_project(project_dir, name: str, timestamp: str) -> None:
+    """同步一个项目：pull → status → commit。"""
+    relog("📁", "检查%s（%s）", name, project_dir)
+    pull_ok, conflicts = git_pull_rebase(project_dir)
+    if conflicts:
+        mark_conflict(conflicts)
+        relog("❌", "%s冲突：%s", name, conflicts)
+    elif not pull_ok:
+        relog("⚠️", "%s git pull 失败", name)
+    else:
+        relog("✅", "%s已同步", name)
+    try:
+        status_p = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=str(project_dir),
+            capture_output=True, text=True, timeout=10,
+        )
+        if status_p.returncode != 0:
+            relog("⚠️", "git status 失败，跳过%s", name)
+        elif status_p.stdout.strip():
+            lines = status_p.stdout.strip().split("\n")
+            relog("⚠️", "%s有 %d 个待提交文件", name, len(lines))
+            run_git_commit_with_retry(project_dir, f"{name}阶段进化 — {timestamp[:10]}", repo_name=name)
+        else:
+            relog("✅", "%s工作区干净", name)
+    except subprocess.TimeoutExpired:
+        relog("❌", "%s git status 超时", name)
+
+
+def _collect_optimization_targets(cost_warning: str) -> tuple[list[Path], bool, str]:
+    """收集优化目标，检测成本模式。"""
+    sys.path.insert(0, str(SWARM_DIR))
+    cost_tier = cost_warning or ""
+    is_dry_run = bool(cost_tier and "跳过" in str(cost_tier))
+    if is_dry_run:
+        relog("ℹ️", "成本模式 '%s'，优化引擎降级为 dry_run", cost_tier)
+    targets: list[Path] = []
+    if PROJECT1_DIR and PROJECT1_DIR.exists():
+        targets.append(PROJECT1_DIR)
+    cfg = _get_config()
+    for t in cfg.get("optimization_targets", []):
+        p = Path(str(t).strip('"\''))
+        if p.exists() and p not in targets:
+            targets.append(p)
+    if not targets:
+        targets.append(SWARM_DIR)
+    return targets, is_dry_run, cost_tier
+
+
+def _run_optimization_engine(targets: list[Path], timestamp: str, dims: list[str], dry_run: bool) -> None:
+    """运行持续优化引擎。"""
+    if not targets:
+        relog("ℹ️", "优化引擎跳过（无有效优化目标）")
+        return
+    try:
+        opt_result = run_optimization_pipeline(
+            scan_targets=targets, timestamp=timestamp,
+            dimensions=dims if dims else OPT_DIMENSIONS, dry_run=dry_run,
+        )
+        relog("🏁", "优化完成：%d 个目标，发现 %d 问题",
+              len(opt_result.get("targets", [])), opt_result.get("total_findings", 0))
+    except Exception as e:
+        relog("⚠️", "优化引擎异常: %s", e)
+
+
+def _run_deep_scan_and_tasks(targets: list[Path], cost_tier: str, timestamp: str) -> None:
+    """深度扫描并生成子Agent修复任务。"""
+    if cost_tier and "跳过" in str(cost_tier):
+        return
+    try:
+        from src.analysis.deep_enterprise_scanner import scan_deep
+        deep_result = scan_deep(str(targets[0])) if targets else None
+        if deep_result and deep_result.get("issues"):
+            from src.fixers.enterprise_fixer import DEEP_FIXERS
+            fixable_types = {k for k, v in DEEP_FIXERS.items() if v is not None}
+            delegable_issues = [iss for iss in deep_result["issues"]
+                                if iss.get("type", "") not in fixable_types
+                                and iss.get("severity", "low") in ("critical", "high")]
+            if delegable_issues:
+                tasks_file = SWARM_DIR / "data" / "deep_fix_tasks.json"
+                tasks_file.write_text(json.dumps({
+                    "generated_at": timestamp, "target_dir": str(targets[0]),
+                    "total": len(delegable_issues), "issues": delegable_issues[:10],
+                }, ensure_ascii=False, indent=2), encoding="utf-8")
+                relog("🧠", "深度修复任务已生成：%d 个 → data/deep_fix_tasks.json", len(delegable_issues))
+            else:
+                relog("✅", "无需要子Agent修复的深层问题")
+        else:
+            relog("ℹ️", "深度扫描无结果")
+    except ImportError as e:
+        relog("⚠️", "deep_enterprise_scanner 不可用: %s", e)
+    except Exception as e:
+        relog("⚠️", "子Agent任务生成异常: %s", e)
+
+
+def _run_failure_analysis(timestamp: str) -> None:
+    """运行失败模式学习。"""
+    try:
+        sys.path.insert(0, str(SWARM_DIR))
+        from src.analysis.failure_analysis import analyze as run_failure_analysis
+        failure_result = run_failure_analysis()
+        relog("📚", "失败分析完成: %d 个失败任务", failure_result.get("total_failed", 0))
+        state = load_state()
+        state["failure_stats"] = {
+            "last_analysis": timestamp,
+            "weekly_patterns": failure_result.get("keyword_analysis", {}),
+            "failure_injection_text": failure_result.get("injection_text", ""),
+            "total_completed": failure_result.get("total_completed", 0),
+        }
+        save_state(state)
+    except ImportError as e:
+        relog("⚠️", "failure_analysis 模块不可用: %s", e)
+    except Exception as e:
+        relog("⚠️", "失败分析异常: %s", e)
+
+
+def _run_log_scan() -> None:
+    """日志异常检测。"""
+    try:
+        sys.path.insert(0, str(SWARM_DIR))
+        from src.analysis.query_logs import scan_logs
+        logs_dir = SWARM_DIR / "logs"
+        if not logs_dir.exists():
+            relog("ℹ️", "日志目录不存在")
+            return
+        today = datetime.now().strftime("%Y-%m-%d")
+        error_logs = scan_logs(logs_dir, date_filter=today, level_filter="ERROR", last=20)
+        if not error_logs:
+            relog("✅", "今日无 ERROR 日志")
+            return
+        relog("⚠️", "检测到 %d 条 ERROR 日志", len(error_logs))
+        state = load_state()
+        state.setdefault("failed_tasks", [])
+        existing_ids = {t.get("task_id", "") for t in state["failed_tasks"]}
+        for entry in error_logs[:5]:
+            task_id = entry.get("task_id", f"log-error-{entry.get('timestamp', '')[:19]}")
+            if task_id not in existing_ids:
+                state["failed_tasks"].append({
+                    "task_id": task_id, "description": entry.get("message", "")[:200],
+                    "error_type": "LOG_ERROR", "source": "query_logs",
+                    "at": entry.get("timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                })
+                existing_ids.add(task_id)
+        save_state(state)
+    except ImportError as e:
+        relog("⚠️", "query_logs 模块不可用: %s", e)
+    except Exception as e:
+        relog("⚠️", "日志异常检测异常: %s", e)
+
+
+def _update_state_and_cost(state: dict, timestamp: str) -> None:
+    """更新 state.json 和记录成本。"""
+    try:
+        from src.infra.cost_tracker_db import CostTrackerDB
+        cost_db = CostTrackerDB()
+        current_round = state.get("current_round", 0) + 1
+        cost_db.record_cost(
+            provider="deepseek", model="deepseek-v4-flash",
+            cost=0.50, task_id=f"round_{current_round}",
+        )
+        dollar_spent = cost_db.get_today_spent()
+        state.setdefault("daily_budget", {})["dollar_spent_today"] = dollar_spent
+        state["daily_budget"]["dollar_limit"] = 5.0
+        if dollar_spent >= 4.5:
+            state["daily_budget"]["tier"] = "red"
+            state["daily_budget"]["readonly_mode"] = True
+        elif dollar_spent >= 2.0:
+            state["daily_budget"]["tier"] = "yellow"
+        else:
+            state["daily_budget"]["tier"] = "green"
+        relog("💰", "本轮成本 $0.50（累计今日 $%.2f / $5.00, %s级）", dollar_spent, state["daily_budget"]["tier"])
+    except Exception as exc:
+        relog("⚠️", "成本记录失败：%s", exc)
+
+    state["current_round"] = state.get("current_round", 0) + 1
+    state["step"] = "done"
+    state["completed_at"] = timestamp
+    if not state.get("started_at"):
+        state["started_at"] = timestamp
+    state["project_one_step"] = "done"
+    state["project_three_step"] = "completed"
+    save_state(state)
+
+
+def main():
+    """主入口 — 完整流程，调用各个子函数。"""
+    timestamp = _parse_cli_args()
     relog("=" * 60, "")
     relog("后勤脚本启动 — %s", timestamp)
 
-    # ── 0. PID 文件锁 ──
     if not acquire_pid_file():
         relog("⏭️", "另一个实例正在运行，退出")
         sys.exit(1)
 
     try:
         state = load_state()
-
-        # ── 0a. 冲突自愈 ──
         check_and_heal_conflicts()
 
-        # ── 1. 磁盘检查 + 日志清理 ──
         disk = check_disk_space()
         if disk.get("paused"):
             relog("⏸️", "磁盘空间不足，跳过本轮主要操作")
 
-        # ── 2. 成本检查 ──
         cost_warning = check_cost_over_budget()
         if cost_warning:
             relog("⏸️", "成本超限，跳过 LLM 密集型操作")
 
-        # ── 3. 项目一同步 ──
+        # 项目同步
         if PROJECT1_DIR is not None:
-            relog("📁", "检查项目一（%s）", PROJECT1_DIR)
-            pull_ok, conflicts = git_pull_rebase(PROJECT1_DIR)
-            if conflicts:
-                mark_conflict(conflicts)
-                relog("❌", "项目一冲突：%s", conflicts)
-            elif not pull_ok:
-                relog("⚠️", "项目一 git pull 失败")
-            else:
-                relog("✅", "项目一已同步")
-
-            try:
-                status_p1 = subprocess.run(
-                    ["git", "status", "--porcelain"],
-                    cwd=str(PROJECT1_DIR),
-                    capture_output=True, text=True, timeout=10,
-                )
-                if status_p1.stdout.strip():
-                    lines = status_p1.stdout.strip().split("\n")
-                    relog("⚠️", "项目一有 %d 个待提交文件", len(lines))
-                    run_git_commit_with_retry(
-                        PROJECT1_DIR,
-                        f"项目一阶段进化 — {timestamp[:10]}",
-                        repo_name="project1",
-                    )
-                else:
-                    relog("✅", "项目一工作区干净")
-            except subprocess.TimeoutExpired:
-                relog("❌", "项目一 git status 超时")
+            _sync_project(PROJECT1_DIR, "项目一", timestamp)
         else:
             relog("ℹ️", "项目一目录未配置（PROJECT1_DIR=None），跳过同步")
+        _sync_project(SWARM_DIR, "项目三", timestamp)
 
-        # ── 4. 项目三后勤 ──
-        relog("📁", "检查项目三")
-        pull_ok_swarm, conflicts_swarm = git_pull_rebase(SWARM_DIR)
-        if conflicts_swarm:
-            mark_conflict(conflicts_swarm)
-            relog("❌", "项目三冲突：%s", conflicts_swarm)
-        elif not pull_ok_swarm:
-            relog("⚠️", "项目三 git pull 失败")
-        else:
-            relog("✅", "项目三已同步")
-
-        try:
-            status_swarm = subprocess.run(
-                ["git", "status", "--porcelain"],
-                cwd=str(SWARM_DIR),
-                capture_output=True, text=True, timeout=10,
-            )
-            if status_swarm.returncode != 0:
-                relog("⚠️", "git status 失败，跳过项目三")
-            elif status_swarm.stdout.strip():
-                lines = status_swarm.stdout.strip().split("\n")
-                relog("⚠️", "有 %d 个未提交文件", len(lines))
-                run_git_commit_with_retry(
-                    SWARM_DIR,
-                    f"swarm-evolve: 后勤同步 — {timestamp[:10]}",
-                    repo_name="swarm",
-                )
-            else:
-                relog("✅", "工作区干净")
-        except subprocess.TimeoutExpired:
-            relog("❌", "git status 超时（10s），跳过项目三同步")
-
-        # ── 4b. 🚀 持续优化引擎（九维全覆盖）────────────────────────────
-        # 确保 src/ 在 sys.path 中
-        sys.path.insert(0, str(SWARM_DIR))
-        
-        # 成本检查：黄色/红色模式时降级为 dry_run（只扫描不修改）
-        cost_tier = cost_warning or ""
-        is_dry_run = bool(cost_tier and "跳过" in str(cost_tier))
-        if is_dry_run:
-            relog("ℹ️", "成本模式 '%s'，优化引擎降级为 dry_run（仅扫描）", cost_tier)
-
-        # 收集所有优化目标（支持多项目同时优化）
-        optimization_targets: list[Path] = []
-        if PROJECT1_DIR and PROJECT1_DIR.exists():
-            optimization_targets.append(PROJECT1_DIR)
-        # 从 config.yaml 读取额外优化目标
+        # 优化引擎
+        targets, is_dry_run, cost_tier = _collect_optimization_targets(cost_warning)
         cfg = _get_config()
-        opt_targets = cfg.get("optimization_targets", [])
-        for t in opt_targets:
-            p = Path(str(t).strip('"\''))
-            if p.exists() and p not in optimization_targets:
-                optimization_targets.append(p)
-        # 默认扫描项目三自身
-        if not optimization_targets:
-            optimization_targets.append(SWARM_DIR)
+        opt_dims = cfg.get("optimization_dimensions", None)
+        _run_optimization_engine(targets, timestamp, opt_dims if opt_dims else OPT_DIMENSIONS, is_dry_run)
 
-        if optimization_targets:
-            # 从 config 读取优化维度子集（空列表=全部9个）
-            opt_dims = cfg.get("optimization_dimensions", None)
-            try:
-                opt_result = run_optimization_pipeline(
-                    scan_targets=optimization_targets,
-                    timestamp=timestamp,
-                    dimensions=opt_dims if opt_dims else OPT_DIMENSIONS,
-                    dry_run=is_dry_run,
-                )
-                relog("🏁", "优化完成：%d 个目标，发现 %d 问题",
-                      len(opt_result.get("targets", [])),
-                      opt_result.get("total_findings", 0))
-            except Exception as e:
-                relog("⚠️", "优化引擎异常: %s", e)
-        else:
-            relog("ℹ️", "优化引擎跳过（无有效优化目标）")
+        # 深层修复任务 + 失败分析 + 日志扫描
+        _run_deep_scan_and_tasks(targets, cost_tier, timestamp)
+        _run_failure_analysis(timestamp)
+        _run_log_scan()
 
-        # ── 4c. 🧠 子Agent深度修复任务生成 ──
-        # 找出不可自动修复的CRITICAL/HIGH问题，写入deep_fix_tasks.json
-        # 由cron prompt中的delegate_task派子Agent去修
-        if not (cost_tier and "跳过" in str(cost_tier)):
-            try:
-                from src.analysis.deep_enterprise_scanner import scan_deep
-                deep_result = scan_deep(str(optimization_targets[0])) if optimization_targets else None
-                if deep_result and deep_result.get("issues"):
-                    from src.fixers.enterprise_fixer import DEEP_FIXERS
-                    fixable_types = {k for k, v in DEEP_FIXERS.items() if v is not None}
-                    delegable_issues = []
-                    for iss in deep_result.get("issues", []):
-                        it = iss.get("type", "")
-                        sev = iss.get("severity", "low")
-                        if it not in fixable_types and sev in ("critical", "high"):
-                            delegable_issues.append(iss)
-                    if delegable_issues:
-                        swarms_tasks = SWARM_DIR / "data" / "deep_fix_tasks.json"
-                        swarms_tasks.write_text(
-                            json.dumps({
-                                "generated_at": timestamp,
-                                "target_dir": str(optimization_targets[0]),
-                                "total": len(delegable_issues),
-                                "issues": delegable_issues[:10],
-                            }, ensure_ascii=False, indent=2),
-                            encoding="utf-8"
-                        )
-                        relog("🧠", "深度修复任务已生成：%d 个问题等待子Agent修复 → data/deep_fix_tasks.json", len(delegable_issues))
-                    else:
-                        relog("✅", "无需要子Agent修复的深层问题")
-                else:
-                    relog("ℹ️", "深度扫描无结果，跳过子Agent任务生成")
-            except ImportError as e:
-                relog("⚠️", "deep_enterprise_scanner 不可用: %s", e)
-            except Exception as e:
-                relog("⚠️", "子Agent任务生成异常: %s", e)
-
-        # ── 4d. 失败模式学习 ──
-        if not (cost_tier and "跳过" in str(cost_tier)):
-            try:
-                sys.path.insert(0, str(SWARM_DIR))
-                from src.analysis.failure_analysis import analyze as run_failure_analysis
-                failure_result = run_failure_analysis()
-                relog("📚", "失败分析完成: %d 个失败任务，生成 %d 条注入文本",
-                      failure_result.get("total_failed", 0),
-                      len(failure_result.get("injection_text", "")))
-                # 同步 failure_stats 到 state.json
-                state = load_state()
-                state["failure_stats"] = {
-                    "last_analysis": timestamp,
-                    "weekly_patterns": failure_result.get("keyword_analysis", {}),
-                    "failure_injection_text": failure_result.get("injection_text", ""),
-                    "total_completed": failure_result.get("total_completed", 0),
-                }
-                save_state(state)
-            except ImportError as e:
-                relog("⚠️", "failure_analysis 模块不可用: %s", e)
-            except Exception as e:
-                relog("⚠️", "失败分析异常: %s", e)
-
-        # ── 4d. 📋 日志异常检测 ──
-        try:
-            sys.path.insert(0, str(SWARM_DIR))
-            from src.analysis.query_logs import scan_logs
-
-            logs_dir = SWARM_DIR / "logs"
-            if logs_dir.exists():
-                today = datetime.now().strftime("%Y-%m-%d")
-                # 扫描今天 ERROR 级别以上的日志
-                error_logs = scan_logs(logs_dir, date_filter=today, level_filter="ERROR", last=20)
-                if error_logs:
-                    relog("⚠️", "检测到 %d 条 ERROR 日志（最近 20 条）", len(error_logs))
-                    # 提取 ERROR 消息作为失败任务记录
-                    state = load_state()
-                    state.setdefault("failed_tasks", [])
-                    for entry in error_logs[:5]:  # 最多取 5 条
-                        task_id = entry.get("task_id", f"log-error-{entry.get('timestamp', '')[:19]}")
-                        # 避免重复记录
-                        existing_ids = {t.get("task_id", "") for t in state["failed_tasks"]}
-                        if task_id not in existing_ids:
-                            state["failed_tasks"].append({
-                                "task_id": task_id,
-                                "description": entry.get("message", "")[:200],
-                                "error_type": "LOG_ERROR",
-                                "source": "query_logs",
-                                "at": entry.get("timestamp", timestamp),
-                            })
-                    save_state(state)
-                else:
-                    relog("✅", "今日无 ERROR 日志")
-            else:
-                relog("ℹ️", "日志目录不存在，跳过日志异常检测")
-        except ImportError as e:
-            relog("⚠️", "query_logs 模块不可用: %s", e)
-        except Exception as e:
-            relog("⚠️", "日志异常检测异常: %s", e)
-
-        # ── 5. 分层委托诊断 ──
+        # 委托诊断 + 心跳 + 并行规划
         run_delegation_diagnosis()
-
-        # ── 5a. 强制委托检查 ──
         check_forced_delegation()
-
-        # ── 5b. 心跳自愈检查 ──
         check_and_heal_heartbeats()
-
-        # ── 6. ⬆️ 并行任务规划（微委托集成） ──
         plan_parallel_tasks()
+
         try:
             sys.path.insert(0, str(SWARM_DIR))
             from src.agents.micro_delegation import plan_micro_delegations
@@ -1366,41 +1349,8 @@ def main():
         except Exception as e:
             relog("⚠️", "微委托规划失败: %s", e)
 
-        # ── 10. 记录本轮成本到 cost_tracker_db ──
-        try:
-            from src.infra.cost_tracker_db import CostTrackerDB
-            cost_db = CostTrackerDB()
-            cost_db.record_cost(
-                provider="deepseek",
-                model="deepseek-v4-flash",
-                cost=0.50,  # 固定估算值，每轮约 $0.50
-                task_id=f"round_{current_round}",
-            )
-            dollar_spent = cost_db.get_today_spent()
-            state.setdefault("daily_budget", {})["dollar_spent_today"] = dollar_spent
-            state["daily_budget"]["dollar_limit"] = 5.0
-            if dollar_spent >= 4.5:
-                state["daily_budget"]["tier"] = "red"
-                state["daily_budget"]["readonly_mode"] = True
-            elif dollar_spent >= 2.0:
-                state["daily_budget"]["tier"] = "yellow"
-            else:
-                state["daily_budget"]["tier"] = "green"
-            relog("💰", "本轮成本 $0.50（累计今日 $%.2f / $5.00, %s级）", dollar_spent, state["daily_budget"]["tier"])
-        except Exception as exc:
-            relog("⚠️", "成本记录失败：%s", exc)
-
-        # ── 11. 更新 state.json ──
-        state = load_state()
-        current_round = state.get("current_round", 0) + 1
-        state["current_round"] = current_round
-        state["step"] = "done"
-        state["completed_at"] = timestamp
-        if not state.get("started_at"):
-            state["started_at"] = timestamp
-        state["project_one_step"] = "done"
-        state["project_three_step"] = "completed"
-        save_state(state)
+        # 成本 + 状态
+        _update_state_and_cost(state, timestamp)
 
         relog("")
         relog("提示：")

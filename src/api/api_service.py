@@ -120,6 +120,35 @@ def _read_lines(path: Path, n: int = 50) -> list[str]:
         return []
 
 
+def _parse_task_from_match(task_match: re.Match) -> dict:
+    """从正则匹配创建新任务字典。"""
+    done = task_match.group(1) == "x"
+    return {
+        "id": task_match.group(2),
+        "status": "completed" if done else "pending",
+        "description": "",
+        "category": "debug",
+        "depends": [],
+    }
+
+
+def _update_task_from_line(current_task: dict, line: str) -> None:
+    """根据行内容更新当前任务（描述/依赖/类别）。"""
+    # 使用映射减少 if/elif 链深度
+    _UPDATERS = {
+        "描述:": lambda l, t: t.update({"description": l.split("描述:", 1)[1].strip()}),
+        "依赖:": lambda l, t: t.update({
+            "depends": [d.strip() for d in l.split("依赖:", 1)[1].strip().split(",")]
+            if l.split("依赖:", 1)[1].strip() and l.split("依赖:", 1)[1].strip() != "无"
+            else []}),
+        "类别:": lambda l, t: t.update({"category": l.split("类别:", 1)[1].strip()}),
+    }
+    for prefix, updater in _UPDATERS.items():
+        if prefix in line:
+            updater(line, current_task)
+            return
+
+
 def _parse_tasks_from_todo() -> list[dict]:
     """从 TODO.md 解析任务列表
 
@@ -145,22 +174,9 @@ def _parse_tasks_from_todo() -> list[dict]:
         if task_match:
             if current_task:
                 tasks.append(current_task)
-            done = task_match.group(1) == "x"
-            current_task = {
-                "id": task_match.group(2),
-                "status": "completed" if done else "pending",
-                "description": "",
-                "category": "debug",
-                "depends": [],
-            }
-        elif current_task and "描述:" in line:
-            current_task["description"] = line.split("描述:", 1)[1].strip()
-        elif current_task and "依赖:" in line:
-            dep_text = line.split("依赖:", 1)[1].strip()
-            if dep_text and dep_text != "无":
-                current_task["depends"] = [d.strip() for d in dep_text.split(",")]
-        elif current_task and "类别:" in line:
-            current_task["category"] = line.split("类别:", 1)[1].strip()
+            current_task = _parse_task_from_match(task_match)
+        elif current_task and (":" in line):
+            _update_task_from_line(current_task, line)
 
     if current_task:
         tasks.append(current_task)
@@ -739,12 +755,8 @@ async def start_optimization(body: dict):
             "message": f"优化已启动（{'仅扫描' if dry_run else '扫描+修复'}），请稍后查看结果"}
 
 
-@app.get("/api/optimize/runs")
-async def list_optimize_runs(limit: int = 20):
-    """列出最近的优化运行记录"""
-    runs = []
-
-    # 从 opt_runs 读取
+def _load_runs_from_opt_dir(limit: int, runs: list) -> None:
+    """从 opt_runs 目录加载运行记录。"""
     for f in sorted(OPT_RUNS_DIR.glob("*.json"), reverse=True):
         if f.name.endswith(".running"):
             continue
@@ -769,38 +781,39 @@ async def list_optimize_runs(limit: int = 20):
         if len(runs) >= limit:
             break
 
-    # 再从 agent_trigger 日志读取（补充进化引擎的结果）
-    log_dir = PROJECT_DIR / "logs"
-    if log_dir.exists():
-        for f in sorted(log_dir.glob("agent_trigger_*.json"), reverse=True):
-            try:
-                d = json.loads(f.read_text(encoding="utf-8"))
-                ent = d.get("deep_scan", {})
-                # 去重
-                if any(r.get("started_at","") == d.get("started_at","") for r in runs):
-                    continue
-                runs.append({
-                    "run_id": f.stem,
-                    "target_dir": d.get("target_dir", ""),
-                    "type": "evolve",
-                    "status": d.get("status", "completed"),
-                    "score": ent.get("score") if ent else (d.get("score_before") or d.get("overall_score")),
-                    "total_issues": ent.get("issue_count") if ent else (d.get("total_issues") or 0),
-                    "high": ent.get("by_severity", {}).get("high", 0) if ent else 0,
-                    "fixes": d.get("deep_fixes", {}).get("succeeded", 0) if d.get("deep_fixes") else 0,
-                    "started_at": d.get("started_at", ""),
-                    "finished_at": d.get("finished_at", ""),
-                    "error": d.get("error", None),
-                })
-            except Exception:
-                continue
-            if len(runs) >= limit:
-                break
 
-    # 按时间排序
-    runs.sort(key=lambda x: x.get("finished_at", x.get("started_at", "")), reverse=True)
-    return runs[:limit]
-    # 加上正在运行的
+def _load_runs_from_agent_logs(limit: int, runs: list) -> None:
+    """从 agent_trigger 日志读取补充运行记录。"""
+    log_dir = PROJECT_DIR / "logs"
+    if not log_dir.exists():
+        return
+    for f in sorted(log_dir.glob("agent_trigger_*.json"), reverse=True):
+        try:
+            d = json.loads(f.read_text(encoding="utf-8"))
+            ent = d.get("deep_scan", {})
+            if any(r.get("started_at","") == d.get("started_at","") for r in runs):
+                continue
+            runs.append({
+                "run_id": f.stem,
+                "target_dir": d.get("target_dir", ""),
+                "type": "evolve",
+                "status": d.get("status", "completed"),
+                "score": ent.get("score") if ent else (d.get("score_before") or d.get("overall_score")),
+                "total_issues": ent.get("issue_count") if ent else (d.get("total_issues") or 0),
+                "high": ent.get("by_severity", {}).get("high", 0) if ent else 0,
+                "fixes": d.get("deep_fixes", {}).get("succeeded", 0) if d.get("deep_fixes") else 0,
+                "started_at": d.get("started_at", ""),
+                "finished_at": d.get("finished_at", ""),
+                "error": d.get("error", None),
+            })
+        except Exception:
+            continue
+        if len(runs) >= limit:
+            break
+
+
+def _load_running_runs(runs: list) -> None:
+    """从 .running 文件加载正在进行的运行。"""
     for f in OPT_RUNS_DIR.glob("*.running"):
         run_id = f.stem
         result_file = OPT_RUNS_DIR / f"{run_id}.json"
@@ -816,6 +829,17 @@ async def list_optimize_runs(limit: int = 20):
                     })
             except Exception:
                 pass
+
+
+@app.get("/api/optimize/runs")
+async def list_optimize_runs(limit: int = 20):
+    """列出最近的优化运行记录"""
+    runs = []
+    _load_runs_from_opt_dir(limit, runs)
+    _load_runs_from_agent_logs(limit, runs)
+    runs.sort(key=lambda x: x.get("finished_at", x.get("started_at", "")), reverse=True)
+    runs = runs[:limit]
+    _load_running_runs(runs)
     return runs
 
 
@@ -862,6 +886,47 @@ def _update_auto_progress(run_id: str, data: dict) -> None:
         progress_file.write_text(json.dumps(existing, ensure_ascii=False), encoding="utf-8")
     except Exception:
         pass
+
+
+def _check_convergence(score_history: list) -> dict:
+    """检查分数是否收敛（连续3轮变化<3分）。返回收敛信息或None。"""
+    if len(score_history) < 3:
+        return None
+    recent = score_history[-3:]
+    spread = max(recent) - min(recent)
+    if spread <= 3:
+        return {
+            "converged": True,
+            "final_score": score_history[-1],
+            "total_rounds": len(score_history),
+            "message": f"分数收敛于 {score_history[-1]}/100（连续3轮变化<3分），循环结束",
+        }
+    return {"converged": False}
+
+
+def _get_score_delta(score_history: list) -> dict:
+    """计算评分变化，用于反馈。"""
+    if len(score_history) < 2:
+        return {}
+    delta = score_history[-1] - score_history[-2]
+    if delta > 0:
+        return {"score_delta": f"+{delta}",
+                "message": f"评分上升 {delta} 分（{score_history[-2]}→{score_history[-1]}），继续监控..."}
+    elif delta < 0:
+        return {"score_delta": str(delta),
+                "message": f"评分下降 {delta} 分（{score_history[-2]}→{score_history[-1]}），继续监控..."}
+    return {}
+
+
+def _extract_dimension_scores(scan_result: dict) -> dict:
+    """从扫描结果提取各维度分数。"""
+    dim_scores = {}
+    for d_name, d_res in scan_result.get("dimensions", {}).items():
+        dim_scores[d_name] = {
+            "score": d_res.get("score", 0),
+            "issues": d_res.get("issue_count", 0),
+        }
+    return dim_scores
 
 
 def _auto_optimize_loop(target_dir: str, dimensions: list[str], run_id: str) -> None:
@@ -1019,6 +1084,66 @@ def _auto_optimize_loop(target_dir: str, dimensions: list[str], run_id: str) -> 
             run_lock.unlink()
 
 
+def _run_evolution_task(target_dir: str, dimensions: list, max_fixes: int, run_id: str, progress_cb) -> None:
+    """后台执行单轮进化循环。"""
+    import sys as _sys
+    import traceback as _tb
+    _SRC = PROJECT_DIR / "src"
+    for p in [str(_SRC), str(PROJECT_DIR)]:
+        if p not in _sys.path:
+            _sys.path.insert(0, p)
+    try:
+        from src.analysis.evolution_engine import run_evolution_round
+        result = run_evolution_round(
+            target_dir=target_dir,
+            dimensions=dimensions,
+            max_fixes_per_round=max_fixes,
+            progress_callback=progress_cb,
+        )
+        result["run_id"] = run_id
+        result = _make_json_safe(result)
+        _write_json(OPT_RUNS_DIR / f"{run_id}.json", result)
+        _update_auto_progress(run_id, {
+            "status": "completed",
+            "phase": "done",
+            "message": f"进化完成！评分 {result.get('score_before','?')}→{result.get('score_after','?')}，修复 {result.get('fixes',{}).get('succeeded',0)} 个问题",
+            "score_before": result.get("score_before"),
+            "score_after": result.get("score_after"),
+            "fixes_succeeded": result.get("fixes",{}).get("succeeded",0),
+            "fixes_failed": result.get("fixes",{}).get("failed",0),
+        })
+    except Exception as e:
+        _update_auto_progress(run_id, {"status": "failed", "phase": "error", "error": str(e)})
+        _write_json(OPT_RUNS_DIR / f"{run_id}.json", {
+            "run_id": run_id, "status": "failed", "error": str(e),
+        })
+    finally:
+        run_lock = OPT_RUNS_DIR / f"{run_id}.running"
+        if run_lock.exists():
+            run_lock.unlink()
+
+
+def _make_json_safe(obj):
+    """递归清理对象使其可 JSON 序列化。"""
+    if hasattr(obj, '__dict__'):
+        return _make_json_safe(obj.__dict__)
+    if isinstance(obj, dict):
+        return {k: _make_json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_make_json_safe(i) for i in obj]
+    if isinstance(obj, (str, int, float, bool, type(None))):
+        return obj
+    if isinstance(obj, (datetime.datetime,)):
+        return obj.isoformat()
+    if isinstance(obj, Path):
+        return str(obj)
+    try:
+        json.dumps(obj)
+        return obj
+    except (TypeError, ValueError):
+        return str(obj)
+
+
 @app.post("/api/optimize/evolve")
 async def start_evolution(body: dict):
     """启动单轮进化循环：扫描 → 修复 → 验证 → 重扫
@@ -1034,18 +1159,14 @@ async def start_evolution(body: dict):
     target_dir = body.get("target_dir", "").strip()
     if not target_dir:
         raise HTTPException(status_code=400, detail="target_dir 是必填字段")
-    wsl_path = target_dir
-    if ":" in target_dir and not target_dir.startswith("/"):
-        drive = target_dir[0].lower()
-        rest = target_dir[2:].replace("\\", "/")
-        wsl_path = f"/mnt/{drive}{rest}"
-    target_path = Path(wsl_path)
+    wsl_path, target_path = _convert_windows_path(target_dir)
     if not target_path.exists():
         raise HTTPException(status_code=400, detail=f"路径不存在（已转换为: {wsl_path}）")
     if not target_path.is_dir():
         raise HTTPException(status_code=400, detail=f"不是目录: {wsl_path}")
 
     max_fixes = body.get("max_fixes", 30)
+    dimensions = body.get("dimensions", None)
     import uuid
     run_id = uuid.uuid4().hex[:12]
 
@@ -1064,52 +1185,12 @@ async def start_evolution(body: dict):
         data["status"] = "running"
         _update_auto_progress(run_id, data)
 
-    def _run():
-        import sys as _sys, traceback as _tb
-        _SRC = PROJECT_DIR / "src"
-        for p in [str(_SRC), str(PROJECT_DIR)]:
-            if p not in _sys.path: _sys.path.insert(0, p)
-        try:
-            from src.analysis.evolution_engine import run_evolution_round
-            result = run_evolution_round(
-                target_dir=target_dir,
-                dimensions=dimensions,
-                max_fixes_per_round=max_fixes,
-                progress_callback=_progress_cb,
-            )
-            result["run_id"] = run_id
-            # 清理不可序列化的
-            def _safe(o):
-                if hasattr(o,'__dict__'): return _safe(o.__dict__)
-                if isinstance(o,dict): return {k:_safe(v) for k,v in o.items()}
-                if isinstance(o,(list,tuple)): return [_safe(i) for i in o]
-                if isinstance(o,(str,int,float,bool,type(None))): return o
-                if isinstance(o,(datetime.datetime,)): return o.isoformat()
-                if isinstance(o,Path): return str(o)
-                try: json.dumps(o); return o
-                except: return str(o)
-            result = _safe(result)
-            _write_json(OPT_RUNS_DIR / f"{run_id}.json", result)
-            _update_auto_progress(run_id, {
-                "status": "completed",
-                "phase": "done",
-                "message": f"进化完成！评分 {result.get('score_before','?')}→{result.get('score_after','?')}，修复 {result.get('fixes',{}).get('succeeded',0)} 个问题",
-                "score_before": result.get("score_before"),
-                "score_after": result.get("score_after"),
-                "fixes_succeeded": result.get("fixes",{}).get("succeeded",0),
-                "fixes_failed": result.get("fixes",{}).get("failed",0),
-            })
-        except Exception as e:
-            _update_auto_progress(run_id, {"status": "failed", "phase": "error", "error": str(e)})
-            _write_json(OPT_RUNS_DIR / f"{run_id}.json", {
-                "run_id": run_id, "status": "failed", "error": str(e),
-            })
-        finally:
-            run_lock = OPT_RUNS_DIR / f"{run_id}.running"
-            if run_lock.exists(): run_lock.unlink()
-
     import threading
-    t = threading.Thread(target=_run, daemon=True)
+    t = threading.Thread(
+        target=_run_evolution_task,
+        args=(target_dir, dimensions, max_fixes, run_id, _progress_cb),
+        daemon=True,
+    )
     t.start()
 
     return {"run_id": run_id, "status": "running", "type": "evolve",

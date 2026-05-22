@@ -43,6 +43,60 @@ MAX_HISTORY_WINDOW = 10      # 只看近 10 轮数据
 # 第 1 层 — 协调者决策支持
 # ═══════════════════════════════════════════════════════════════════════
 
+def _scan_routes_for_sync_defs(routes_dir: Path, issues: list) -> None:
+    """扫描 routes/ 中的 sync def 路由。"""
+    if not routes_dir.exists():
+        return
+    for fpath in routes_dir.rglob("*.py"):
+        content = fpath.read_text(encoding="utf-8", errors="replace")
+        for line in content.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("def ") and "(" in stripped and ")" in stripped:
+                name_match = re.match(r"def\s+(\w+)\s*\(", stripped)
+                if name_match:
+                    issues.append(
+                        ("INFO", "async",
+                         f"sync def 路由 {name_match.group(1)} 可改为 async def",
+                         str(fpath))
+                    )
+
+
+def _scan_services_for_sync_io(services_dir: Path, issues: list) -> None:
+    """扫描 services/ 中缺 async 的 I/O 操作。"""
+    if not services_dir.exists():
+        return
+    for fpath in services_dir.rglob("*.py"):
+        content = fpath.read_text(encoding="utf-8", errors="replace")
+        has_async_def = "async def" in content
+        has_sync_io = any(kw in content for kw in
+                           [".get(", ".post(", ".request(", ".write(", ".read(",
+                            "open(", "subprocess.", "time.sleep"])
+        if has_async_def and has_sync_io:
+            if "asyncio.to_thread" not in content and "await" not in content.split("asyncio.to_thread")[0]:
+                issues.append(
+                    ("WARN", "async_io",
+                     "async def 函数中包含未包装的同步 I/O 调用",
+                     str(fpath))
+                )
+
+
+def _scan_test_coverage(routes_dir: Path, tests_dir: Path, issues: list) -> None:
+    """扫描 tests/ 目录覆盖率。"""
+    if not tests_dir.exists():
+        return
+    py_files = list(routes_dir.rglob("*.py")) if routes_dir.exists() else []
+    for fpath in py_files:
+        module_name = fpath.stem
+        test_suffixes = [f"test_{module_name}.py", f"test_{module_name}s.py"]
+        has_test = any((tests_dir / ts).exists() for ts in test_suffixes)
+        if not has_test and module_name not in ("__init__", "__pycache__"):
+            issues.append(
+                ("INFO", "test_coverage",
+                 f"模块 {module_name}.py 缺少测试文件",
+                 str(fpath))
+            )
+
+
 def scan_codebase_for_issues(project_dir: str) -> list[str]:
     """scan_codebase_for_issues — 扫描代码库发现问题点。
 
@@ -66,55 +120,13 @@ def scan_codebase_for_issues(project_dir: str) -> list[str]:
         return [("WARN", "path", f"目录不存在: {project_dir}", "")]
 
     # ── 扫描 routes/ 中的 sync def ──
-    routes_dir = root / "routes"
-    if routes_dir.exists():
-        for fpath in routes_dir.rglob("*.py"):
-            content = fpath.read_text(encoding="utf-8", errors="replace")
-            for line in content.splitlines():
-                stripped = line.strip()
-                # 检测 sync def 路由（标记 @router 或 @app 装饰器之下）
-                if stripped.startswith("def ") and "(" in stripped and ")" in stripped:
-                    name_match = re.match(r"def\s+(\w+)\s*\(", stripped)
-                    if name_match:
-                        issues.append(
-                            ("INFO", "async",
-                             f"sync def 路由 {name_match.group(1)} 可改为 async def",
-                             str(fpath))
-                        )
+    _scan_routes_for_sync_defs(root / "routes", issues)
 
     # ── 扫描 services/ 中缺 async 的 I/O 操作 ──
-    services_dir = root / "services"
-    if services_dir.exists():
-        for fpath in services_dir.rglob("*.py"):
-            content = fpath.read_text(encoding="utf-8", errors="replace")
-            has_async_def = "async def" in content
-            has_sync_io = any(kw in content for kw in
-                               [".get(", ".post(", ".request(", ".write(", ".read(",
-                                "open(", "subprocess.", "time.sleep"])
-            if has_async_def and has_sync_io:
-                # 检查有没有 asyncio.to_thread 包装
-                if "asyncio.to_thread" not in content and "await" not in content.split("asyncio.to_thread")[0]:
-                    issues.append(
-                        ("WARN", "async_io",
-                         "async def 函数中包含未包装的同步 I/O 调用",
-                         str(fpath))
-                    )
+    _scan_services_for_sync_io(root / "services", issues)
 
     # ── 扫描 tests/ 目录覆盖率 ──
-    tests_dir = root / "tests"
-    if tests_dir.exists():
-        py_files = list(routes_dir.rglob("*.py")) if routes_dir.exists() else []
-        for fpath in py_files:
-            module_name = fpath.stem
-            # 扫描未覆盖的测试文件
-            test_suffixes = [f"test_{module_name}.py", f"test_{module_name}s.py"]
-            has_test = any((tests_dir / ts).exists() for ts in test_suffixes)
-            if not has_test and module_name not in ("__init__", "__pycache__"):
-                issues.append(
-                    ("INFO", "test_coverage",
-                     f"模块 {module_name}.py 缺少测试文件",
-                     str(fpath))
-                )
+    _scan_test_coverage(root / "routes", root / "tests", issues)
 
     return issues
 
@@ -411,6 +423,87 @@ def log_coordinator_write_size(state: dict, file_path: str,
 # ═══════════════════════════════════════════════════════════════════════
 # 诊断工具（diagnose_subagent_failure 的子任务）
 # ═══════════════════════════════════════════════════════════════════════
+def _calc_basic_stats(rounds: list) -> dict:
+    """计算基本统计量。"""
+    total_rounds = len(rounds)
+    success_count = sum(1 for r in rounds if r.get("result") == "success")
+    failed_count = sum(1 for r in rounds if r.get("result") != "success")
+    success_rate = success_count / total_rounds if total_rounds > 0 else 0
+    return {"total_rounds": total_rounds, "success_count": success_count,
+            "failed_count": failed_count, "overall_success_rate": round(success_rate, 3)}
+
+
+def _analyze_delegation_patterns(rounds: list) -> dict:
+    """分析委托模式。"""
+    delegated_rounds = [r for r in rounds
+                        if "delegate" in str(r.get("approach", ""))
+                        or "delegate" in r.get("task", "")]
+    delegate_count = len(delegated_rounds)
+    delegate_success = sum(1 for r in delegated_rounds
+                           if r.get("result") == "success")
+    delegate_success_rate = delegate_success / delegate_count if delegate_count > 0 else 0
+    return {"delegated_rounds": delegate_count,
+            "delegate_success_count": delegate_success,
+            "delegate_failed_count": delegate_count - delegate_success,
+            "delegate_success_rate": round(delegate_success_rate, 3)}
+
+
+def _analyze_failure_patterns(rounds: list) -> dict:
+    """分析失败归因。"""
+    failure_patterns = {}
+    for r in rounds:
+        waste = r.get("waste", "")
+        failure_type = _classify_failure(str(r.get("task", "")) + " " + waste)
+        if failure_type:
+            failure_patterns.setdefault(failure_type, 0)
+            failure_patterns[failure_type] += 1
+
+    failure_keywords = {}
+    for r in rounds:
+        waste = r.get("waste", "")
+        for kw in ["mock", "patch", "签名", "import", "语法", "超时",
+                    "路径", "cd", "venv", "pip", "ast.parse", "py_compile",
+                    "replace_all", "write_file"]:
+            if kw in waste.lower():
+                failure_keywords.setdefault(kw, 0)
+                failure_keywords[kw] += 1
+
+    return {
+        "failure_patterns": dict(sorted(failure_patterns.items(), key=lambda x: -x[1])),
+        "failure_keywords": dict(sorted(failure_keywords.items(), key=lambda x: -x[1])),
+    }
+
+
+def _analyze_trend(rounds: list, total_rounds: int) -> dict:
+    """趋势分析：最近 5 轮和之前 5 轮对比。"""
+    recent_count = min(5, total_rounds)
+    recent_rounds = rounds[-recent_count:]
+    old_rounds = rounds[-recent_count*2:-recent_count] if total_rounds >= recent_count*2 else []
+
+    recent_success = sum(1 for r in recent_rounds if r.get("result") == "success")
+    old_success = sum(1 for r in old_rounds if r.get("result") == "success")
+
+    return {
+        "recent_5_success_rate": round(recent_success / len(recent_rounds), 3) if recent_rounds else 0,
+        "previous_5_success_rate": round(old_success / len(old_rounds), 3) if old_rounds else 0,
+        "improving": (recent_success / len(recent_rounds) > old_success / len(old_rounds))
+                     if recent_rounds and old_rounds else None,
+    }
+
+
+def _find_token_heavy_rounds(rounds: list) -> list:
+    """找出最耗 token 的轮次。"""
+    token_heavy = []
+    for r in rounds:
+        lines_added = r.get("lines_added", 0) or 0
+        if lines_added > 300:
+            token_heavy.append({
+                "round": r.get("round"),
+                "task": r.get("task", "")[:60],
+                "lines_added": lines_added,
+            })
+    return token_heavy[:5]
+
 
 def diagnose_failures(evolve_log_path: Optional[Path] = None) -> dict:
     """diagnose_failures — 分析 self_evolve_log.json 诊断委托失败模式。
@@ -435,82 +528,23 @@ def diagnose_failures(evolve_log_path: Optional[Path] = None) -> dict:
     if not isinstance(rounds, list):
         return {"error": "日志格式错误：期望 JSON 数组"}
 
-    total_rounds = len(rounds)
-    success_count = sum(1 for r in rounds if r.get("result") == "success")
-    failed_count = sum(1 for r in rounds if r.get("result") != "success")
-    success_rate = success_count / total_rounds if total_rounds > 0 else 0
+    stats = _calc_basic_stats(rounds)
+    delegation = _analyze_delegation_patterns(rounds)
+    failures = _analyze_failure_patterns(rounds)
+    trend = _analyze_trend(rounds, stats["total_rounds"])
+    token_heavy = _find_token_heavy_rounds(rounds)
 
-    # 分析委托模式
-    delegated_rounds = [r for r in rounds
-                        if "delegate" in str(r.get("approach", ""))
-                        or "delegate" in r.get("task", "")]
-    delegate_count = len(delegated_rounds)
-    delegate_success = sum(1 for r in delegated_rounds
-                           if r.get("result") == "success")
-    delegate_success_rate = delegate_success / delegate_count if delegate_count > 0 else 0
-
-    # 分析失败归因
-    failure_patterns = {}
-    for r in rounds:
-        good = r.get("good", "")
-        waste = r.get("waste", "")
-        failure_type = _classify_failure(str(r.get("task", "")) + " " + waste)
-        if failure_type:
-            failure_patterns.setdefault(failure_type, 0)
-            failure_patterns[failure_type] += 1
-
-    # 找高频失败词
-    failure_keywords = {}
-    for r in rounds:
-        waste = r.get("waste", "")
-        for kw in ["mock", "patch", "签名", "签名", "import", "语法", "超时",
-                    "路径", "cd", "venv", "pip", "ast.parse", "py_compile",
-                    "replace_all", "write_file"]:
-            if kw in waste.lower():
-                failure_keywords.setdefault(kw, 0)
-                failure_keywords[kw] += 1
-
-    # 趋势分析：最近 5 轮和之前 5 轮对比
-    recent_count = min(5, total_rounds)
-    recent_rounds = rounds[-recent_count:]
-    old_rounds = rounds[-recent_count*2:-recent_count] if total_rounds >= recent_count*2 else []
-
-    recent_success = sum(1 for r in recent_rounds if r.get("result") == "success")
-    old_success = sum(1 for r in old_rounds if r.get("result") == "success")
-
-    # 找出最耗 token 的轮次
-    token_heavy = []
-    for r in rounds:
-        lines_added = r.get("lines_added", 0) or 0
-        if lines_added > 300:
-            token_heavy.append({
-                "round": r.get("round"),
-                "task": r.get("task", "")[:60],
-                "lines_added": lines_added,
-            })
+    total_lines_added = sum(r.get("lines_added", 0) or 0 for r in rounds)
+    total_lines_removed = sum(r.get("lines_removed", 0) or 0 for r in rounds)
 
     return {
-        "total_rounds": total_rounds,
-        "success_count": success_count,
-        "failed_count": failed_count,
-        "overall_success_rate": round(success_rate, 3),
-        "delegated_rounds": delegate_count,
-        "delegate_success_count": delegate_success,
-        "delegate_failed_count": delegate_count - delegate_success,
-        "delegate_success_rate": round(delegate_success_rate, 3),
-        "failure_patterns": dict(sorted(failure_patterns.items(),
-                                        key=lambda x: -x[1])),
-        "failure_keywords": dict(sorted(failure_keywords.items(),
-                                         key=lambda x: -x[1])),
-        "trend": {
-            "recent_5_success_rate": round(recent_success / len(recent_rounds), 3) if recent_rounds else 0,
-            "previous_5_success_rate": round(old_success / len(old_rounds), 3) if old_rounds else 0,
-            "improving": (recent_success / len(recent_rounds) > old_success / len(old_rounds))
-                         if recent_rounds and old_rounds else None,
-        },
-        "token_heavy_rounds": token_heavy[:5],
-        "total_lines_added": sum(r.get("lines_added", 0) or 0 for r in rounds),
-        "total_lines_removed": sum(r.get("lines_removed", 0) or 0 for r in rounds),
+        **stats,
+        **delegation,
+        **failures,
+        "trend": trend,
+        "token_heavy_rounds": token_heavy,
+        "total_lines_added": total_lines_added,
+        "total_lines_removed": total_lines_removed,
     }
 
 
