@@ -14,6 +14,8 @@ API 返回结构和设计理由见各函数文档。
 """
 
 import re
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import json
 import datetime
 from pathlib import Path
@@ -571,7 +573,6 @@ def execute_bug_fix(bug: dict, project_path: str) -> dict:
     import subprocess
     import shutil
     from pathlib import Path as _Path
-
     project = _Path(project_path)
     if not project.exists():
         return {

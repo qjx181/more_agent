@@ -26,11 +26,12 @@ failure_analysis.py — 每周失败模式分析脚本
 """
 
 import json
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import re
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-
 # ─── 路径（自动计算，不依赖硬编码）─────────────────────────────────────
 # 位于 src/analysis/，向上三级到项目根目录
 SWARM_DIR = Path(__file__).parent.parent.parent.resolve()

@@ -15,11 +15,12 @@
 """
 
 import sqlite3
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
-
 # ─── 路径（自动计算，不依赖硬编码）─────────────────────────────────────
 # src/infra/ → 向上三级: infra → src → 项目根
 SWARM_DIR = Path(__file__).parent.parent.parent.resolve()

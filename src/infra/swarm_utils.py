@@ -5,11 +5,11 @@ swarm_utils.py — 基础工具函数集
 """
 
 import os
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import sys
 import datetime
 from typing import Union, Optional
-
-
 def read_file_safe(path: Union[str, os.PathLike]) -> Optional[str]:
     """安全读取文件内容。
 

@@ -20,6 +20,8 @@
 """
 
 import hashlib
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import json
 import os
 import sys
@@ -111,7 +113,6 @@ def redact_sensitive(text: str) -> str:
     查找 SENSITIVE_PATTERNS 中定义的 key=value 模式并脱敏 value。
     """
     import re
-
     result = text
     for pattern in SENSITIVE_PATTERNS:
         # 匹配 key=value 或 key: value 或 key:value

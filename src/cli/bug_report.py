@@ -14,6 +14,8 @@
 """
 
 import argparse
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import json
 import sys
 from pathlib import Path
@@ -21,8 +23,6 @@ from pathlib import Path
 # 添加当前目录到路径，以便导入 bug_analysis_engine
 sys.path.insert(0, str(Path(__file__).parent.resolve()))
 from src.analysis.bug_analysis_engine import analyze_bug, _load_history, rank_possible_causes
-
-
 BUGS_DIR = Path(__file__).parent / "bugs"
 BUGS_DIR.mkdir(exist_ok=True)
 PENDING_FILE = BUGS_DIR / "pending.json"

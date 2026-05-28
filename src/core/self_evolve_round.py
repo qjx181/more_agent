@@ -19,6 +19,8 @@
 """
 
 import json
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import os
 import re
 import subprocess

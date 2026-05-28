@@ -9,10 +9,11 @@
 """
 
 import ast
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import re
 import logging
 from pathlib import Path
-
 # ── 工具函数 ────────────────────────────────────────────────────────────
 
 

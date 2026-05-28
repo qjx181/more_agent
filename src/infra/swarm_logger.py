@@ -24,6 +24,8 @@
 """
 
 import os
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import sys
 import json
 import logging
@@ -362,7 +364,6 @@ class SwarmLogger:
 def main() -> None:
     """CLI 入口 —— 直接运行 ``python swarm_logger.py`` 测试各级别日志输出。"""
     import argparse
-
     parser = argparse.ArgumentParser(
         description="Swarm Logger — 结构化日志记录工具",
     )

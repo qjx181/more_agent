@@ -20,11 +20,12 @@
 """
 
 import json
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import os
 import re
 from pathlib import Path
 from typing import Optional
-
 # ─── 路径（自动计算，不依赖硬编码）─────────────────────────────────────
 # 位于 src/agents/，向上三级到项目根目录
 SWARM_DIR = Path(__file__).parent.parent.parent.resolve()

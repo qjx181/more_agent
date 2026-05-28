@@ -17,6 +17,8 @@
 """
 
 import os
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional

@@ -21,6 +21,8 @@
 """
 
 import ast
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import re
 from pathlib import Path
 
@@ -1561,7 +1563,6 @@ if __name__ == "__main__":
     # 快速自测
     test_code = """import os
 import sys
-
 def get_user(user_id):
     # SQL 注入
     query = f"SELECT * FROM users WHERE id = {user_id}"

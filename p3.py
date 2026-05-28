@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """p3 — 项目三 CLI 工具
 
 用法:
@@ -14,13 +14,18 @@
   p3 help                    — 显示此帮助
 """
 
+from typing import Any, Optional, List
 import argparse
 import json
 import os
 import subprocess
 import sys
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
+from src.infra.logging_config import setup_logging
+setup_logging()
+
 
 SWARM_DIR = Path(__file__).parent.resolve()
 DATA_DIR = SWARM_DIR / "data"
@@ -42,7 +47,7 @@ def _load_state() -> dict:
         return {}
 
 
-def cmd_status(args):
+def cmd_status(args) -> Any:
     """查看系统状态"""
     state = _load_state()
     if not state:
@@ -67,7 +72,7 @@ def cmd_status(args):
     return 0
 
 
-def cmd_cost(args):
+def cmd_cost(args) -> Any:
     """查看成本报告"""
     try:
         from src.infra.cost_tracker_db import get_today_spent, get_cost_trend
@@ -103,7 +108,7 @@ def cmd_cost(args):
     return 0
 
 
-def cmd_scan(args):
+def cmd_scan(args) -> Any:
     """对任意目标目录执行深度扫描"""
     target = args.target_dir
     if not target:
@@ -206,12 +211,12 @@ def cmd_scan(args):
         record_cost(provider="deepseek", model="scan", cost=0.50, task_id=f"scan_{target_path.name}")
         print(f"💰 已记录扫描成本 $0.50")
     except Exception:
-        pass
+        logging.debug("记录扫描成本失败（非致命）")
 
     return 0
 
 
-def cmd_setup(args):
+def cmd_setup(args) -> Any:
     """注册新目标"""
     target = args.target_dir
     if not target:
@@ -230,7 +235,7 @@ def cmd_setup(args):
     return 0
 
 
-def cmd_targets(args):
+def cmd_targets(args) -> Any:
     """列出所有目标"""
     if TARGETS_FILE.exists():
         target = TARGETS_FILE.read_text(encoding="utf-8").strip()
@@ -255,11 +260,11 @@ def cmd_targets(args):
                 for t in sorted(targets_used):
                     print(f"    • {t}")
         except Exception:
-            pass
+            logging.debug("读取历史目标失败（非致命）")
     return 0
 
 
-def cmd_cron(args):
+def cmd_cron(args) -> Any:
     """控制 cron"""
     if args.action == "on":
         subprocess.run(["cronjob", "resume", "79cb9d06dc5d"], capture_output=True)
@@ -273,7 +278,7 @@ def cmd_cron(args):
     return 0
 
 
-def cmd_report(args):
+def cmd_report(args) -> Any:
     """查看最近优化报告"""
     print("📊 最近优化报告:")
     found = False

@@ -17,12 +17,12 @@
 """
 
 import os
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import sys
 import subprocess
 import datetime
 from pathlib import Path
-
-
 def get_project_root() -> Path:
     """自动检测项目根目录。"""
     # 优先从环境变量读取

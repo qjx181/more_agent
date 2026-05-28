@@ -20,6 +20,8 @@
 """
 
 import time
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import os
 import sys
 from datetime import datetime
@@ -272,7 +274,6 @@ def get_project_report(project_path: str) -> str:
 
 if __name__ == "__main__":
     import argparse, json
-
     parser = argparse.ArgumentParser(description="持续优化引擎 — 9 维度项目扫描")
     parser.add_argument("project", help="项目目录路径")
     parser.add_argument("--dimension", "-d", action="append",

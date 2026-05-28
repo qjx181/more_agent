@@ -13,6 +13,8 @@
 """
 
 import ast
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import json
 import re
 import sys

@@ -39,14 +39,14 @@
 """
 
 import argparse
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import json
 import os
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-
-
 # ─── 路径常量 ──────────────────────────────────────────────────────────
 # 项目根目录（脚本所在目录的上层或同层）
 SCRIPT_DIR = Path(__file__).resolve().parent

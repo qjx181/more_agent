@@ -26,6 +26,8 @@
 """
 
 import ast
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import re
 import sys
 from pathlib import Path

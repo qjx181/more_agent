@@ -18,6 +18,8 @@
 """
 
 import json
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import re
 from pathlib import Path
 from typing import Any, Optional

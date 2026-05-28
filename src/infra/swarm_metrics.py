@@ -21,6 +21,8 @@
 """
 
 import datetime
+from src.infra.logging_config import PrintToLogger
+print = PrintToLogger(__name__).info
 import json
 import os
 import statistics
